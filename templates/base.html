@@ -372,19 +372,15 @@
 
   {# Absorbs everything else the old icon strip held. #}
   <div id="meSheet" class="mobile-sheet hidden">
-    <div id="meSheetBackdrop" class="absolute inset-0 bg-gb-bg0/60 backdrop-blur-sm"></div>
-    <div class="mobile-sheet-panel neu-surface" role="dialog" aria-modal="true" aria-labelledby="meSheetTitle">
-      <h2 id="meSheetTitle" class="font-semibold text-base text-gb-fg flex items-center gap-2 mb-2 px-1">
-        <span class="material-symbols-rounded" aria-hidden="true">person</span>
-        {{ user.username }}
-      </h2>
+    <div id="meSheetBackdrop" class="mobile-sheet-backdrop bg-gb-bg0/60 backdrop-blur-sm"></div>
+    <div class="mobile-sheet-panel neu-surface" role="dialog" aria-modal="true" aria-label="Account menu">
       <a href="{{ url_for('user_profile', user_id=user.id) }}" class="mobile-sheet-item">
         <span class="material-symbols-rounded" aria-hidden="true">person_outline</span>
         My profile
       </a>
       <button id="meSheetSettings" class="mobile-sheet-item" type="button">
         <span class="material-symbols-rounded" aria-hidden="true">manage_accounts</span>
-        Account settings
+        Settings
       </button>
       <button class="mobile-sheet-item theme-toggle" type="button">
         <span class="material-symbols-rounded" aria-hidden="true">dark_mode</span>
@@ -406,10 +402,6 @@
           Sign out
         </button>
       </form>
-      <button id="closeMeSheetBtn" class="mobile-sheet-item justify-center" type="button">
-        <span class="material-symbols-rounded" aria-hidden="true">close</span>
-        Close
-      </button>
     </div>
   </div>
   {% endif %}

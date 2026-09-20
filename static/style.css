@@ -321,6 +321,11 @@ header .neu-btn {
   --app-tabbar-h: 0px;
   --app-dock-h: 0px;
   --app-safe-b: env(safe-area-inset-bottom, 0px);
+  /* The side inset and the vertical spacing shared by the three floating
+     bottom elements (tab bar, session dock, "Me" sheet), so the geometry is
+     stated once instead of being repeated across five calc()s. */
+  --app-shell-gutter: 0.75rem;
+  --app-bar-gap: 0.55rem;
 }
 
 /* Every bottom-anchored floating overlay uses this instead of a hard-coded
@@ -332,7 +337,10 @@ header .neu-btn {
 }
 
 /* Stacking order for the bottom furniture. Modals (z-50 / z-[60]) stay above
-   all of it, which is what we want - a dialog should cover the tab bar. */
+   all of it, which is what we want - a dialog should cover the tab bar. The
+   "Me" sheet is the exception: rather than raising these above it (which
+   would also raise them above the settings modal), its backdrop stops short
+   of them - see .mobile-sheet-backdrop. */
 .mobile-tabbar { z-index: 45; }
 .session-dock { z-index: 46; }
 
@@ -365,8 +373,14 @@ header .neu-btn {
 @media (max-width: 767.98px) {
   /* Only reserve space when the tab bar is actually rendered. Admin-only
      sessions have no tab bar and keep the header nav. */
+  /* The tab bar's whole footprint measured from the bottom edge: tab height
+     (3.4rem) + the bar's 0.4rem padding top and bottom + its two 1px borders
+     + the --app-bar-gap it floats above the edge by. Everything that has to
+     clear the bar reads this one token, so it has to match reality - it is
+     asserted against the rendered height in the browser check: measured, the
+     bar renders 69.2px and the gap 8.8px, so 4.9rem (78.4px) clears it. */
   body.has-tabbar {
-    --app-tabbar-h: 3.9rem;
+    --app-tabbar-h: 4.9rem;
   }
 
   .app-shell {
@@ -400,16 +414,24 @@ header .neu-btn {
   }
 
   /* ---- Bottom tab bar ---- */
+  /* A floating raised card rather than an edge-to-edge strip: the flat bar
+     was the one surface in the app that ignored the neumorphic language.
+     Same shadow pair and background as .neu-surface. */
   .mobile-tabbar {
     position: fixed;
-    inset: auto 0 0 0;
+    right: var(--app-shell-gutter);
+    bottom: calc(var(--app-bar-gap) + var(--app-safe-b));
+    left: var(--app-shell-gutter);
     display: grid;
     grid-auto-flow: column;
     grid-auto-columns: 1fr;
-    padding-bottom: var(--app-safe-b);
-    border-top: 1px solid rgb(var(--gb-bg2-rgb));
+    gap: 0.3rem;
+    padding: 0.4rem;
+    border: 1px solid rgb(var(--gb-bg2-rgb));
+    border-radius: 1.25rem;
     background: rgb(var(--gb-bg0-rgb));
-    box-shadow: 0 -6px 18px rgb(var(--gb-shadow-rgb) / 0.55);
+    box-shadow: 8px 8px 18px rgb(var(--gb-shadow-rgb)),
+               -8px -8px 18px rgb(var(--gb-highlight-rgb));
   }
 
   .mobile-tab {
@@ -419,8 +441,10 @@ header .neu-btn {
     align-items: center;
     justify-content: center;
     gap: 0.12rem;
-    min-height: 3.9rem;
-    padding: 0.35rem 0.25rem;
+    min-height: 3.4rem;
+    padding: 0.3rem 0.25rem;
+    border: 1px solid transparent;
+    border-radius: 0.95rem;
     color: rgb(var(--gb-fg-rgb) / 0.62);
     font-size: 0.68rem;
     font-weight: 600;
@@ -432,47 +456,66 @@ header .neu-btn {
     font-size: 1.4rem;
   }
 
-  /* The active tab is always rendered (the old header nav omitted the current
-     page, so buttons moved around underneath your thumb page to page). */
+  /* The active tab is a raised surface of its own sitting inside the bar -
+     bg1 against the bar's bg0, so it reads as a separate object rather than
+     a tint. (It is also always rendered: the old header nav omitted the
+     current page, so buttons moved around underneath your thumb.) */
   .mobile-tab[aria-current="page"] {
+    border-color: rgb(var(--gb-bg2-rgb));
+    background: rgb(var(--gb-bg1-rgb));
+    box-shadow: 4px 4px 9px rgb(var(--gb-shadow-rgb)),
+               -4px -4px 9px rgb(var(--gb-highlight-rgb) / 0.6);
     color: rgb(var(--gb-blue-rgb));
   }
 
-  .mobile-tab[aria-current="page"]::before {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: 50%;
-    width: 2.25rem;
-    height: 3px;
-    border-radius: 0 0 3px 3px;
-    background: rgb(var(--gb-blue-rgb));
-    transform: translateX(-50%);
-  }
-
   /* ---- "Me" sheet: everything the old scrolling icon strip used to hold ---- */
+  /* pointer-events: none so the bare region over the tab bar (which the
+     backdrop deliberately does not cover) passes taps through to the bar
+     below; the two real children opt back in. */
   .mobile-sheet {
     display: block;
     position: fixed;
     inset: 0;
     z-index: 55;
+    pointer-events: none;
+  }
+
+  /* Stops above the tab bar - and above the session dock when one is showing -
+     so the bottom furniture stays crisp instead of being blurred and dimmed
+     along with the page. Same tokens the panel is positioned with, so the
+     backdrop ends exactly where the panel begins. */
+  .mobile-sheet-backdrop {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: calc(var(--app-tabbar-h) + var(--app-dock-h) + var(--app-safe-b));
+    left: 0;
+    pointer-events: auto;
   }
 
   .mobile-sheet.hidden {
     display: none;
   }
 
+  /* Floats above the tab bar and, when one is running, above the session
+     dock - so the three never overlap. Closing is the backdrop's job; there
+     is no Close button. */
   .mobile-sheet-panel {
+    pointer-events: auto;
     position: absolute;
-    right: 0;
-    bottom: 0;
-    left: 0;
-    max-height: 80vh;
+    right: var(--app-shell-gutter);
+    bottom: calc(
+      var(--app-tabbar-h) + var(--app-dock-h) + var(--app-safe-b) + var(--app-bar-gap)
+    );
+    left: var(--app-shell-gutter);
+    max-height: 70vh;
     overflow-y: auto;
-    padding: 0.85rem 0.85rem calc(0.85rem + var(--app-safe-b));
-    border-radius: 1.1rem 1.1rem 0 0;
-    border-top: 1px solid rgb(var(--gb-bg2-rgb));
+    padding: 0.6rem;
+    border: 1px solid rgb(var(--gb-bg2-rgb));
+    border-radius: 1.25rem;
     background: rgb(var(--gb-bg0-rgb));
+    box-shadow: 8px 8px 18px rgb(var(--gb-shadow-rgb)),
+               -8px -8px 18px rgb(var(--gb-highlight-rgb));
   }
 
   .mobile-sheet-item {
@@ -500,16 +543,21 @@ header .neu-btn {
   /* ---- Session dock: the running session, reachable from every tab ---- */
   .session-dock.is-visible {
     position: fixed;
-    right: 0;
-    bottom: calc(var(--app-tabbar-h) + var(--app-safe-b));
-    left: 0;
+    right: var(--app-shell-gutter);
+    bottom: calc(var(--app-tabbar-h) + var(--app-safe-b) + var(--app-bar-gap));
+    left: var(--app-shell-gutter);
     display: flex;
     align-items: center;
     gap: 0.6rem;
-    padding: 0.5rem 0.75rem;
-    border-top: 1px solid rgb(var(--gb-bg2-rgb));
-    background: rgb(var(--gb-bg1-rgb));
-    box-shadow: 0 -4px 14px rgb(var(--gb-shadow-rgb) / 0.45);
+    padding: 0.6rem 0.8rem;
+    border: 1px solid rgb(var(--gb-bg2-rgb));
+    border-radius: 1.25rem;
+    /* bg0, same as the tab bar and the sheet: the three floating elements
+       should read as the same material. bg1 is reserved for things raised
+       *on top* of them, like the active tab. */
+    background: rgb(var(--gb-bg0-rgb));
+    box-shadow: 8px 8px 18px rgb(var(--gb-shadow-rgb)),
+               -8px -8px 18px rgb(var(--gb-highlight-rgb));
   }
 
   .session-dock-info {
@@ -773,17 +821,23 @@ header .neu-btn {
     white-space: nowrap;
   }
 
+  /* Even columns rather than two small buttons hugging the left edge. Auto
+     columns, not a fixed 1fr 1fr: user.html drops the whole actions cell for
+     non-owners, and an even split should hold for whatever count is there. */
   .history-table .hist-actions {
     grid-column: 1 / -1;
     grid-row: 3;
-    display: flex;
-    gap: 0.4rem;
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: 1fr;
+    gap: 0.5rem;
     padding-top: 0.55rem;
   }
 
   .history-table .hist-actions button {
     justify-content: center;
-    min-width: 2.65rem;
+    width: 100%;
+    min-width: 0;
     min-height: 2.35rem;
     margin-right: 0;
   }

@@ -513,8 +513,16 @@
       lastFocus = null;
     }
 
-    openBtn.addEventListener("click", open);
-    document.getElementById("closeMeSheetBtn").addEventListener("click", close);
+    // A toggle, not just an opener: the backdrop stops above the tab bar so
+    // the bar stays unblurred, which means a second tap on "Me" lands on this
+    // button rather than on the backdrop that used to dismiss it.
+    openBtn.addEventListener("click", () => {
+      if (sheet.classList.contains("hidden")) open();
+      else close();
+    });
+    // No Close button: the backdrop covers the whole viewport (including the
+    // tab bar), so a tap anywhere outside the panel dismisses it - and tapping
+    // "Me" again lands on the backdrop, which reads as a toggle.
     document.getElementById("meSheetBackdrop").addEventListener("click", close);
 
     // Settings is an existing page-wide modal; hand off to its own opener
@@ -535,6 +543,21 @@
   // scroll down, or switch tabs, and they were gone. This bar keeps them
   // reachable from every tab, and ticks locally from the last known baseline
   // so no page outside the dashboard needs an SSE connection.
+  // --app-bar-gap in pixels. The dock floats above the tab bar by this much,
+  // so whatever has to clear the dock must clear its box plus this gap.
+  // Read from the custom property rather than duplicating the number, and
+  // resolved through the element's own font size so a rem value is correct
+  // (and a px value still works).
+  function barGapPx() {
+    const raw = getComputedStyle(document.documentElement)
+      .getPropertyValue("--app-bar-gap")
+      .trim();
+    const value = parseFloat(raw);
+    if (!value) return 0;
+    if (raw.endsWith("px")) return value;
+    return value * parseFloat(getComputedStyle(document.documentElement).fontSize);
+  }
+
   function initSessionDock() {
     const dock = document.getElementById("sessionDock");
     if (!dock) return;
@@ -582,7 +605,7 @@
       // overlay move up by exactly as much as the dock occupies.
       document.documentElement.style.setProperty(
         "--app-dock-h",
-        visible ? `${dock.offsetHeight}px` : "0px"
+        visible ? `${dock.offsetHeight + barGapPx()}px` : "0px"
       );
       if (visible && !ticker) {
         // Paint immediately: the bar is on screen a whole second before the

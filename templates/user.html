@@ -415,6 +415,10 @@
     clearBtn.classList.toggle("hidden", !query && !category);
   }
 
+  window.matchMedia(window.MOBILE_QUERY).addEventListener("change", (event) => {
+    state.recentLimit = event.matches ? 5 : 10;
+  });
+
   function buildRecentParams(offset) {
     const { query, category } = getRecentFilters();
     const params = new URLSearchParams({
@@ -775,9 +779,15 @@
   // bundle, but tables/grid/totals render either way (a failed Chart.js
   // load must not blank the page - renderOrUpdateChart no-ops without it).
   function seedInitialData() {
-    state.recentSessions = initialData.recent.sessions || [];
+    // Ten rows is a lot of scrolling on a phone, so mobile shows five and
+    // pages the rest in behind "Load more". The server always embeds ten, so
+    // trim the seed and recompute has_more: the server's flag answers "is
+    // there anything past ten", which is the wrong question once we render
+    // five of them.
+    state.recentLimit = window.isMobileViewport() ? 5 : 10;
+    state.recentSessions = (initialData.recent.sessions || []).slice(0, state.recentLimit);
     state.recentTotal = initialData.recent.total || state.recentSessions.length;
-    state.recentHasMore = Boolean(initialData.recent.has_more);
+    state.recentHasMore = state.recentSessions.length < state.recentTotal;
     state.recentLoadedOnce = true;
     renderRecentTable(state.recentSessions);
     state.activityDays = normalizeGrid(initialData.grid);
