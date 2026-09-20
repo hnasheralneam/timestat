@@ -370,7 +370,9 @@ def register_routes(app):
     @app.get("/admin/analytics")
     @security.admin_required
     def admin_analytics():
-        return render_template("admin_analytics.html", active_page="admin_analytics")
+        return render_template(
+            "admin_analytics.html", active_page="admin_analytics", preload_charts=True
+        )
 
     @app.get("/admin/api/analytics")
     @security.admin_required

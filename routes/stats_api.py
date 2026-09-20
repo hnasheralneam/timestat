@@ -1,6 +1,5 @@
 from flask import jsonify, request, session
 
-import config
 import db
 from utils import parsing
 from services import live_cache, queries
@@ -23,7 +22,6 @@ def register_routes(app):
     @security.login_required
     def api_weekly_leaderboard():
         current_ts = db.now_ts()
-        since_ts = current_ts - config.WEEK_SECONDS
         limit_raw = request.args.get("limit")
         limit = None
         if limit_raw is not None:
@@ -35,32 +33,33 @@ def register_routes(app):
                 return jsonify({"error": "limit must be at least 1"}), 400
             limit = parsed_limit
 
-        rows = queries.leaderboard_rows(current_ts, since_ts=since_ts)
-        if limit is not None:
-            rows = rows[:limit]
-        return jsonify({"leaderboard": rows, "server_ts": current_ts, "since_ts": since_ts})
+        # Same rows the SSE digest pushes, from the shared revision+TTL cache
+        # (the weekly leaderboard page polls this endpoint per open tab).
+        base = live_cache.weekly_digest_base(current_ts, limit=limit)
+        return jsonify(
+            {"leaderboard": base["leaderboard"], "server_ts": current_ts, "since_ts": base["since_ts"]}
+        )
 
     @app.get("/api/stats")
     @security.login_required
     def api_stats():
         current_ts = db.now_ts()
         user_id = int(session["user_id"])
-        # All-time rows come from the revision+TTL cache (see
-        # api_leaderboard); the weekly rows are a bounded 7-day query and
-        # stay uncached.
+        # Every row set here comes from the revision+TTL cache (see
+        # api_leaderboard): the weekly rows are the same ones the SSE digest
+        # pushes, so a request never recomputes what a stream just did.
         my_rows = live_cache.user_all_time_categories(user_id, current_ts)
         team_rows = live_cache.team_all_time_categories(current_ts)
-        since_ts = current_ts - config.WEEK_SECONDS
-        my_week_rows = queries.category_rows_for_user(user_id, current_ts, since_ts=since_ts)
-        team_week_rows = queries.category_rows_for_user(None, current_ts, since_ts=since_ts)
+        week_base = live_cache.weekly_digest_base(current_ts)
+        my_week_rows = live_cache.user_weekly_categories(user_id, current_ts)
 
         return jsonify(
             {
                 "my_categories": my_rows,
                 "team_categories": team_rows,
                 "my_categories_week": my_week_rows,
-                "team_categories_week": team_week_rows,
-                "since_ts": since_ts,
+                "team_categories_week": week_base["team_categories"],
+                "since_ts": week_base["since_ts"],
             }
         )
 

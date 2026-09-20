@@ -32,6 +32,9 @@ class FixesTestCase(unittest.TestCase):
         self.env_patch.start()
         self.app = app_module.create_app()
         self.app.config["TESTING"] = True
+        # Writes made directly via sqlite3 in tests bypass live_cache.invalidate();
+        # a zero check interval makes the cache notice them on the next read.
+        self.app.config["LIVE_CACHE_CHECK_INTERVAL"] = 0
         self.app.config["STORE_LOGIN_CODE_PLAINTEXT"] = True
         self.client = self.app.test_client()
 

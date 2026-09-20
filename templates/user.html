@@ -4,19 +4,22 @@
 {% block header_subtitle %}Profile insights from tracked sessions.{% endblock %}
 {% block content %}
 <div class="mb-3">
-  <a href="{{ url_for('weekly_leaderboard') }}" class="inline-flex items-center gap-1 text-sm text-gb-fg/70 hover:text-gb-blue">
+  <a id="profileBackLink" href="{{ url_for('dashboard') }}" class="inline-flex items-center gap-1 text-sm text-gb-fg/70 hover:text-gb-blue">
     <span class="material-symbols-rounded" aria-hidden="true">arrow_back</span>
-    Leaderboard
+    <span id="profileBackLabel">Dashboard</span>
   </a>
 </div>
 <div class="grid lg:grid-cols-2 gap-4">
   <section class="lg:col-span-2 neu-surface p-5 min-w-0">
     <h2 class="font-semibold text-lg mb-2 text-gb-fg flex items-center gap-2">
       <span class="material-symbols-rounded" aria-hidden="true">calendar_month</span>
-      Activity Grid (Last 20 Weeks)
+      Activity Grid (<span id="activityGridRange">Last 20 Weeks</span>)
     </h2>
     <p class="text-xs text-gb-fg/70 mb-3">GitHub-style daily activity based on completed sessions.</p>
     <div id="activityGrid" class="overflow-x-auto"></div>
+    {# Cell tooltips are hover-driven and so say nothing on a touch device.
+       Tapping a cell writes its date and hours here instead. #}
+    <p id="activityGridCaption" class="mt-2 text-xs text-gb-fg/75 min-h-4" aria-live="polite"></p>
     <div class="mt-3 flex items-center gap-2 text-xs text-gb-fg/75">
       <span>Less</span>
       <span id="activityLegend0" class="w-3 h-3 rounded-sm"></span>
@@ -34,7 +37,7 @@
       <span class="material-symbols-rounded" aria-hidden="true">pie_chart</span>
       Category Breakdown
     </h2>
-    <canvas id="categoryChart" height="240" role="img" aria-label="Doughnut chart of this user's tracked hours by category"></canvas>
+    <div class="chart-box"><canvas id="categoryChart" role="img" aria-label="Doughnut chart of this user's tracked hours by category"></canvas></div>
     <p id="categoryTotalHours" class="mt-1 text-xs text-gb-fg/70 text-center hidden"></p>
     <p id="categoryEmpty" class="hidden mt-3 empty-state">No session data yet.</p>
   </section>
@@ -45,7 +48,7 @@
       Daily Trend
     </h2>
     <p class="text-xs text-gb-fg/70 mb-2">Tracked hours per day over the last 14 days.</p>
-    <canvas id="dailyTrendChart" height="210" role="img" aria-label="Line chart of tracked hours per day over the last 14 days"></canvas>
+    <div class="chart-box"><canvas id="dailyTrendChart" role="img" aria-label="Line chart of tracked hours per day over the last 14 days"></canvas></div>
     <p id="dailyTrendEmpty" class="hidden mt-3 empty-state">No activity data yet.</p>
   </section>
 
@@ -136,6 +139,28 @@
 <script>
   const targetUserId = {{ target_user.id }};
   const canDeleteSessions = {{ "true" if can_delete_sessions else "false" }};
+  const initialData = {{ initial_data|tojson }};
+
+  // "Back" goes to wherever the visitor actually came from (leaderboards,
+  // dashboard, admin) when that is a same-origin page other than this one;
+  // the server-rendered default is the dashboard.
+  (function () {
+    const link = document.getElementById("profileBackLink");
+    const label = document.getElementById("profileBackLabel");
+    let ref = null;
+    try { ref = document.referrer ? new URL(document.referrer) : null; } catch (_err) { ref = null; }
+    if (!link || !ref || ref.origin !== window.location.origin || ref.pathname === window.location.pathname) return;
+    const labels = {
+      "/dashboard": "Dashboard",
+      "/weekly-leaderboard": "Weekly leaderboard",
+      "/all-time-stats": "All-time stats",
+      "/admin": "Admin dashboard",
+      "/admin/analytics": "Team analytics"
+    };
+    if (!(ref.pathname in labels)) return;
+    link.href = ref.pathname;
+    if (label) label.textContent = labels[ref.pathname];
+  })();
 
   function setMessage(text, isError = false) {
     const msgEl = document.getElementById("userProfileMessage");
@@ -145,6 +170,10 @@
   }
   let categoryChart = null;
   let dailyTrendChart = null;
+  // Last-rendered inputs, kept so a theme/palette change can repaint the
+  // charts and grid locally (colors only) without another fetch.
+  let lastCategoryRows = null;
+  let lastTrendDays = null;
   const state = {
     recentSessions: [],
     recentLimit: 10,
@@ -200,15 +229,30 @@
     });
   }
 
+  let lastGridDays = null;
+  let lastGridMax = 0;
+
   function renderActivityGrid(days, maxSeconds) {
+    lastGridDays = days;
+    lastGridMax = maxSeconds;
     const gridHost = document.getElementById("activityGrid");
     const empty = document.getElementById("activityEmpty");
+    const caption = document.getElementById("activityGridCaption");
     gridHost.innerHTML = "";
+    if (caption) caption.textContent = "";
     if (!days.length || maxSeconds <= 0) {
       empty.classList.remove("hidden");
       return;
     }
     empty.classList.add("hidden");
+
+    // 20 weeks is ~420px of fixed-size cells - always a sideways scroll inside
+    // a padded card on a phone. Show the most recent 12 weeks there instead;
+    // the server still sends 140 days, so widening the window redraws in full.
+    const weeks = window.isMobileViewport() ? 12 : 20;
+    const rangeLabel = document.getElementById("activityGridRange");
+    if (rangeLabel) rangeLabel.textContent = `Last ${weeks} Weeks`;
+    days = days.slice(-(weeks * 7));
 
     const firstWeekday = new Date(`${days[0].date}T00:00:00`).getDay();
     const paddedDays = [
@@ -225,12 +269,18 @@
 
     const monthRow = document.createElement("div");
     monthRow.className = "flex gap-1 mb-1 ml-8 text-[10px] text-gb-fg/70";
+    // One label per month. Two adjacent columns can both start on a day <= 7
+    // (a padded partial first week followed by the month's first full week),
+    // which printed the month name twice in a row - "MayMay" in the header.
+    let lastLabeledMonth = null;
     for (const col of columns) {
       const firstNonNull = col.find((item) => item);
       const firstDate = firstNonNull ? new Date(`${firstNonNull.date}T00:00:00`) : null;
-      const label = firstDate && firstDate.getDate() <= 7
-        ? firstDate.toLocaleDateString(undefined, { month: "short" })
-        : "";
+      let label = "";
+      if (firstDate && firstDate.getDate() <= 7 && firstDate.getMonth() !== lastLabeledMonth) {
+        label = firstDate.toLocaleDateString(undefined, { month: "short" });
+        lastLabeledMonth = firstDate.getMonth();
+      }
       const slot = document.createElement("div");
       slot.className = "w-4 text-center";
       slot.textContent = label;
@@ -264,6 +314,13 @@
           const hours = (day.seconds / 3600).toFixed(2);
           cell.style.backgroundColor = activityColor(day.seconds, maxSeconds);
           cell.setAttribute("data-tooltip", `${localDate} — ${hours}h`);
+          cell.tabIndex = 0;
+          cell.setAttribute("role", "button");
+          cell.setAttribute("aria-label", `${localDate} — ${hours}h`);
+          cell.addEventListener("click", () => {
+            const caption = document.getElementById("activityGridCaption");
+            if (caption) caption.textContent = `${localDate} — ${hours}h`;
+          });
         } else {
           cell.style.backgroundColor = "rgb(var(--gb-bg1-rgb))";
         }
@@ -277,7 +334,12 @@
     gridHost.appendChild(wrapper);
   }
 
-  function renderCategoryChart(rows) {
+  window.matchMedia(window.MOBILE_QUERY).addEventListener("change", () => {
+    if (lastGridDays) renderActivityGrid(lastGridDays, lastGridMax);
+  });
+
+  function renderCategoryChart(rows, force = false) {
+    lastCategoryRows = rows;
     document.getElementById("categoryEmpty").classList.toggle("hidden", rows.length > 0);
     const totalEl = document.getElementById("categoryTotalHours");
     if (!rows.length) {
@@ -304,7 +366,8 @@
         plugins: {
           legend: { position: "bottom", labels: { color: textColor } }
         }
-      }
+      },
+      force
     });
   }
 
@@ -383,17 +446,18 @@
       const safeNote = escapeHtml(s.note || "");
       const safeStart = escapeHtml(tsToLocal(s.start_ts));
       const safeEnd = escapeHtml(tsToLocal(s.end_ts));
+      const safeEndCompact = escapeHtml(formatCompactDateTime(s.end_ts));
       const safeDuration = escapeHtml(formatDuration(s.duration_seconds));
       const safeNoteTitle = safeNote || "No note";
       const tr = document.createElement("tr");
       tr.className = "border-t border-gb-bg2";
       tr.innerHTML = `
-        <td class="py-2" data-label="Category">${safeCategoryName}</td>
-        <td class="py-2" data-label="Duration" data-tooltip="Started ${safeStart}">${safeDuration}</td>
-        <td class="py-2" data-label="Note" data-tooltip="${safeNoteTitle}">${safeNote || "-"}</td>
-        <td class="py-2" data-label="Ended">${safeEnd}</td>
+        <td class="py-2 hist-cat" data-label="Category">${safeCategoryName}</td>
+        <td class="py-2 hist-dur" data-label="Duration" data-tooltip="Started ${safeStart}">${safeDuration}</td>
+        <td class="py-2 hist-note" data-label="Note" data-tooltip="${safeNoteTitle}">${safeNote || "-"}</td>
+        <td class="py-2 hist-when" data-label="Ended" data-tooltip="Ended ${safeEnd}">${safeEndCompact}</td>
         ${canDeleteSessions ? `
-          <td class="py-2" data-label="Actions">
+          <td class="py-2 hist-actions" data-label="Actions">
             <button class="neu-btn neu-btn-sm border border-gb-bg2 bg-gb-bg1 text-gb-fg inline-flex items-center gap-1 text-xs px-2 py-1 mr-1" data-edit-session-id="${s.id}" type="button" data-tooltip="Edit this completed session">
               <span class="material-symbols-rounded" aria-hidden="true">edit</span>
             </button>
@@ -428,7 +492,8 @@
     }
   }
 
-  function renderDailyTrend(days) {
+  function renderDailyTrend(days, force = false) {
+    lastTrendDays = days;
     const empty = document.getElementById("dailyTrendEmpty");
     const hasData = days.some((d) => d.seconds > 0);
     if (!days.length || !hasData) {
@@ -462,7 +527,8 @@
         plugins: {
           legend: { display: false }
         }
-      }
+      },
+      force
     });
   }
 
@@ -693,17 +759,49 @@
     });
   }
 
-  document.querySelectorAll(".theme-toggle").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      paintActivityLegend();
-      renderActivityGrid(state.activityDays, state.activityMaxSeconds);
-    });
+  // Theme/palette changes (toggle button, settings swatches, another tab)
+  // only change colors: repaint from the last-rendered data. The activity
+  // grid's alpha levels depend on light/dark, and Chart.js only redraws on
+  // data changes, so both need an explicit repaint with `force`.
+  window.addEventListener("timestat:theme-changed", () => {
+    paintActivityLegend();
+    renderActivityGrid(state.activityDays, state.activityMaxSeconds);
+    if (lastCategoryRows) renderCategoryChart(lastCategoryRows, true);
+    if (lastTrendDays) renderDailyTrend(lastTrendDays, true);
   });
+
+  // First paint comes from the server-embedded snapshot (routes/pages.py),
+  // so nothing waits on an API round trip. Chart draws are gated on the
+  // bundle, but tables/grid/totals render either way (a failed Chart.js
+  // load must not blank the page - renderOrUpdateChart no-ops without it).
+  function seedInitialData() {
+    state.recentSessions = initialData.recent.sessions || [];
+    state.recentTotal = initialData.recent.total || state.recentSessions.length;
+    state.recentHasMore = Boolean(initialData.recent.has_more);
+    state.recentLoadedOnce = true;
+    renderRecentTable(state.recentSessions);
+    state.activityDays = normalizeGrid(initialData.grid);
+    state.activityMaxSeconds = initialData.grid.max_seconds || 0;
+    paintActivityLegend();
+    renderActivityGrid(state.activityDays, state.activityMaxSeconds);
+    window.ensureCharts().catch(() => {}).then(() => {
+      renderCategoryChart(initialData.stats.categories || []);
+      renderDailyTrend(state.activityDays.slice(-14));
+    });
+  }
 
   // common.js is deferred (see base.html); wait for DOMContentLoaded so the
   // real ensureCharts/themeColors are in place before the first paint.
   document.addEventListener("DOMContentLoaded", () => {
     paintActivityLegend();
+    if (initialData) {
+      try {
+        seedInitialData();
+        return;
+      } catch (err) {
+        console.error("Profile seed failed; falling back to fetch", err);
+      }
+    }
     loadPageData().catch(async (err) => {
       if (err.name === "AbortError") return;
       if (err.message === "Unauthorized" || err.message?.includes("Unauthorized")) {

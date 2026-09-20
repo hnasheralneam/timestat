@@ -21,6 +21,9 @@ class TimeStatRegressionTests(unittest.TestCase):
         app_module.DB_PATH = self.db_path
         self.app = app_module.create_app()
         self.app.config["TESTING"] = True
+        # Writes made directly via sqlite3 in tests bypass live_cache.invalidate();
+        # a zero check interval makes the cache notice them on the next read.
+        self.app.config["LIVE_CACHE_CHECK_INTERVAL"] = 0
         self.client = self.app.test_client()
 
     def tearDown(self) -> None:

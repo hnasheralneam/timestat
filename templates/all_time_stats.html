@@ -4,11 +4,13 @@
 {% block header_subtitle %}All-time leaderboard and category breakdowns.{% endblock %}
 {% block content %}
 <div class="grid lg:grid-cols-3 gap-4">
-  <section class="neu-surface p-5">
+  <section class="all-time-leaderboard neu-surface p-5">
     <h2 class="font-semibold text-lg mb-3 text-gb-fg flex items-center gap-2">
       <span class="material-symbols-rounded" aria-hidden="true">military_tech</span>
       Live Leaderboard (All Time)
     </h2>
+    {# On mobile style.css drops the max-height: a scroller nested inside the
+       page scroll is a trap on touch. #}
     <div class="overflow-auto max-h-96">
       <table class="leaderboard-table">
         <thead class="text-gb-fg/70">
@@ -29,7 +31,7 @@
       <span class="material-symbols-rounded" aria-hidden="true">pie_chart</span>
       My Time Breakdown (All Time)
     </h2>
-    <canvas id="myChart" height="210" role="img" aria-label="Doughnut chart of your all-time tracked hours by category"></canvas>
+    <div class="chart-box"><canvas id="myChart" role="img" aria-label="Doughnut chart of your all-time tracked hours by category"></canvas></div>
     <p id="myChartTotalHours" class="mt-1 text-xs text-gb-fg/70 text-center hidden"></p>
     <p id="myChartEmpty" class="empty-state hidden mt-3">No personal all-time data yet.</p>
   </section>
@@ -39,7 +41,7 @@
       <span class="material-symbols-rounded" aria-hidden="true">groups</span>
       Team Time Breakdown (All Time)
     </h2>
-    <canvas id="teamChart" height="210" role="img" aria-label="Doughnut chart of team all-time tracked hours by category"></canvas>
+    <div class="chart-box"><canvas id="teamChart" role="img" aria-label="Doughnut chart of team all-time tracked hours by category"></canvas></div>
     <p id="teamChartTotalHours" class="mt-1 text-xs text-gb-fg/70 text-center hidden"></p>
     <p id="teamChartEmpty" class="empty-state hidden mt-3">No team all-time data yet.</p>
   </section>
@@ -47,12 +49,48 @@
 
 <script>
   const currentUserId = {{ user.id }};
+  const initialData = {{ initial_data|tojson }};
 
   // formatHours, escapeHtml, postJson, and renderOrUpdateChart are provided
   // globally by static/js/common.js (loaded from base.html).
 
   let leaderboardLoadedOnce = false;
   let lastLeaderboardJson = null;
+
+  // Renders one /api/leaderboard-shaped payload (also what the server
+  // embeds as initialData.leaderboard).
+  function applyLeaderboard(data) {
+    const tbody = document.getElementById("leaderboardBody");
+    const empty = document.getElementById("leaderboardEmpty");
+    const serialized = JSON.stringify(data.leaderboard);
+    if (serialized === lastLeaderboardJson) return;
+    lastLeaderboardJson = serialized;
+
+    tbody.innerHTML = "";
+    if (!data.leaderboard.length) {
+      empty.classList.remove("hidden");
+      return;
+    }
+    empty.classList.add("hidden");
+    for (const row of data.leaderboard) {
+      const tr = document.createElement("tr");
+      const isMe = row.user_id === currentUserId;
+      const medals = Array.isArray(window.MEDALS) ? window.MEDALS : [];
+      const medal = medals[row.rank - 1] || "";
+      if (isMe) tr.classList.add("font-semibold");
+      tr.innerHTML = `
+        <td>${medal ? `<span aria-label="Rank ${row.rank}">${medal}</span>` : `<span class="text-gb-fg/60">#${row.rank}</span>`}</td>
+        <td>
+          <a href="/users/${row.user_id}" class="inline-flex items-center gap-1 font-medium ${isMe ? "text-gb-green" : "text-gb-blue hover:text-gb-purple"}" data-tooltip="${isMe ? "You" : `View ${escapeHtml(row.username)}'s profile`}">
+            <span class="material-symbols-rounded" aria-hidden="true">person</span>
+            ${escapeHtml(row.username)}${isMe ? " (you)" : ""}
+          </a>
+        </td>
+        <td class="text-right" data-tooltip="${row.seconds} seconds total">${formatHours(row.seconds)}</td>
+      `;
+      tbody.appendChild(tr);
+    }
+  }
 
   async function loadLeaderboard() {
     const tbody = document.getElementById("leaderboardBody");
@@ -69,35 +107,7 @@
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Could not load leaderboard");
       leaderboardLoadedOnce = true;
-
-      const serialized = JSON.stringify(data.leaderboard);
-      if (serialized === lastLeaderboardJson) return;
-      lastLeaderboardJson = serialized;
-
-      tbody.innerHTML = "";
-      if (!data.leaderboard.length) {
-        empty.classList.remove("hidden");
-        return;
-      }
-      empty.classList.add("hidden");
-      for (const row of data.leaderboard) {
-        const tr = document.createElement("tr");
-        const isMe = row.user_id === currentUserId;
-        const medals = Array.isArray(window.MEDALS) ? window.MEDALS : [];
-        const medal = medals[row.rank - 1] || "";
-        if (isMe) tr.classList.add("font-semibold");
-        tr.innerHTML = `
-          <td>${medal ? `<span aria-label="Rank ${row.rank}">${medal}</span>` : `<span class="text-gb-fg/60">#${row.rank}</span>`}</td>
-          <td>
-            <a href="/users/${row.user_id}" class="inline-flex items-center gap-1 font-medium ${isMe ? "text-gb-green" : "text-gb-blue hover:text-gb-purple"}" data-tooltip="${isMe ? "You" : `View ${row.username}'s profile`}">
-              <span class="material-symbols-rounded" aria-hidden="true">person</span>
-              ${row.username}${isMe ? " (you)" : ""}
-            </a>
-          </td>
-          <td class="text-right" data-tooltip="${row.seconds} seconds total">${formatHours(row.seconds)}</td>
-        `;
-        tbody.appendChild(tr);
-      }
+      applyLeaderboard(data);
     } catch (err) {
       // Surface the failure instead of leaving the pulsing "Loading…" row (or
       // a stale table) up forever with zero indication anything went wrong.
@@ -109,8 +119,9 @@
 
   let myChart = null;
   let teamChart = null;
+  let lastStatsData = null;
 
-  function renderPie(chartRef, canvasId, labels, values, title, emptyId, totalEl) {
+  function renderPie(chartRef, canvasId, labels, values, title, emptyId, totalEl, force = false) {
     const empty = document.getElementById(emptyId);
     if (totalEl) document.getElementById(totalEl).classList.add("hidden");
     if (!labels.length) {
@@ -137,10 +148,45 @@
         }]
       },
       options: {
-        plugins: { legend: { position: "bottom", labels: { color: textColor } }, title: { display: true, text: title, color: textColor } }
-      }
+        // Desktop-only: the title repeats the section heading and steals height
+        // the ring needs once the bottom legend wraps on a narrow screen.
+        plugins: { legend: { position: "bottom", labels: { color: textColor } }, title: { display: !window.isMobileViewport(), text: title, color: textColor } }
+      },
+      force
     });
   }
+
+  // Renders one /api/stats-shaped payload (only the all-time keys are used;
+  // initialData.stats carries just those).
+  function applyStats(data, force = false) {
+    lastStatsData = data;
+    myChart = renderPie(
+      myChart,
+      "myChart",
+      data.my_categories.map(x => x.name),
+      data.my_categories.map(x => x.seconds / 3600),
+      "Your Hours",
+      "myChartEmpty",
+      "myChartTotalHours",
+      force
+    );
+
+    teamChart = renderPie(
+      teamChart,
+      "teamChart",
+      data.team_categories.map(x => x.name),
+      data.team_categories.map(x => x.seconds / 3600),
+      "Team Hours",
+      "teamChartEmpty",
+      "teamChartTotalHours",
+      force
+    );
+  }
+
+  // Theme/palette changes only affect chart colors - repaint locally.
+  window.addEventListener("timestat:theme-changed", () => {
+    if (lastStatsData) applyStats(lastStatsData, true);
+  });
 
   async function loadStats() {
     try {
@@ -154,26 +200,7 @@
       }
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Could not load stats");
-
-      myChart = renderPie(
-        myChart,
-        "myChart",
-        data.my_categories.map(x => x.name),
-        data.my_categories.map(x => x.seconds / 3600),
-        "Your Hours",
-        "myChartEmpty",
-        "myChartTotalHours"
-      );
-
-      teamChart = renderPie(
-        teamChart,
-        "teamChart",
-        data.team_categories.map(x => x.name),
-        data.team_categories.map(x => x.seconds / 3600),
-        "Team Hours",
-        "teamChartEmpty",
-        "teamChartTotalHours"
-      );
+      applyStats(data);
     } catch (err) {
       [[myChart, "myChartEmpty", "myChartTotalHours"], [teamChart, "teamChartEmpty", "teamChartTotalHours"]]
         .forEach(([chart, emptyId, totalId]) => {
@@ -228,6 +255,15 @@
   // common.js is deferred (see base.html); wait for DOMContentLoaded so the
   // real ensureCharts is in place before the first charts paint.
   document.addEventListener("DOMContentLoaded", () => {
+    if (initialData) {
+      // Server-embedded first snapshot: table now, charts as soon as the
+      // (preloaded) bundle is ready. Totals/empty states render even if the
+      // bundle fails. The poll above keeps everything fresh afterwards.
+      leaderboardLoadedOnce = true;
+      applyLeaderboard(initialData.leaderboard);
+      window.ensureCharts().catch(() => {}).then(() => applyStats(initialData.stats));
+      return;
+    }
     guardedRefresh();
   });
 </script>

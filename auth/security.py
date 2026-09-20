@@ -139,6 +139,11 @@ def admin_required(fn):
     @wraps(fn)
     def wrapped(*args, **kwargs):
         if not session.get("is_admin"):
+            # JSON endpoints must not redirect: fetch() follows the redirect
+            # to the HTML login page and postJson then fails with a cryptic
+            # "Request failed (HTTP 200)" instead of a clear Unauthorized.
+            if request.path.startswith("/admin/api/"):
+                return jsonify({"error": "Unauthorized"}), 401
             return redirect(url_for("admin_login"))
         return fn(*args, **kwargs)
 

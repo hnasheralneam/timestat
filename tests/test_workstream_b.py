@@ -1,3 +1,5 @@
+import gc
+import json
 import os
 import re
 import sqlite3
@@ -30,6 +32,9 @@ class TimeStatTestCase(unittest.TestCase):
         self.env_patch.start()
         self.app = app_module.create_app()
         self.app.config["TESTING"] = True
+        # Writes made directly via sqlite3 in tests bypass live_cache.invalidate();
+        # a zero check interval makes the cache notice them on the next read.
+        self.app.config["LIVE_CACHE_CHECK_INTERVAL"] = 0
         self.client = self.app.test_client()
 
     def tearDown(self) -> None:
@@ -46,6 +51,27 @@ class TimeStatTestCase(unittest.TestCase):
         )
         self.assertEqual(response.status_code, 200)
         return extract_csrf(response.data)
+
+    def _seed_completed_session(self, user_id: int, start_ts: int, end_ts: int, category="Other"):
+        with sqlite3.connect(self.db_path) as conn:
+            conn.execute(
+                """
+                INSERT INTO sessions(
+                    user_id, category_name, note, start_ts, end_ts,
+                    paused_seconds, status, pause_started_ts, created_ts
+                )
+                VALUES(?, ?, '', ?, ?, 0, 'completed', NULL, ?)
+                """,
+                (user_id, category, start_ts, end_ts, start_ts),
+            )
+            conn.commit()
+
+    def _user_id(self, username: str) -> int:
+        with sqlite3.connect(self.db_path) as conn:
+            row = conn.execute(
+                "SELECT id FROM users WHERE username = ?", (username,)
+            ).fetchone()
+            return int(row[0])
 
 
 class ElapsedSecondsInWindowTests(unittest.TestCase):
@@ -131,27 +157,6 @@ class ElapsedSecondsInWindowTests(unittest.TestCase):
 
 
 class WeeklyLeaderboardAndStatsTests(TimeStatTestCase):
-    def _seed_completed_session(self, user_id: int, start_ts: int, end_ts: int, category="Other"):
-        with sqlite3.connect(self.db_path) as conn:
-            conn.execute(
-                """
-                INSERT INTO sessions(
-                    user_id, category_name, note, start_ts, end_ts,
-                    paused_seconds, status, pause_started_ts, created_ts
-                )
-                VALUES(?, ?, '', ?, ?, 0, 'completed', NULL, ?)
-                """,
-                (user_id, category, start_ts, end_ts, start_ts),
-            )
-            conn.commit()
-
-    def _user_id(self, username: str) -> int:
-        with sqlite3.connect(self.db_path) as conn:
-            row = conn.execute(
-                "SELECT id FROM users WHERE username = ?", (username,)
-            ).fetchone()
-            return int(row[0])
-
     def test_weekly_leaderboard_only_counts_sessions_within_the_week(self):
         self._register_and_sign_in("weekly-user")
         user_id = self._user_id("weekly-user")
@@ -198,6 +203,221 @@ class WeeklyLeaderboardAndStatsTests(TimeStatTestCase):
 
         self.assertEqual(week_totals.get("Research"), 300)
         self.assertEqual(all_totals.get("Research"), 420)
+
+
+class CachedAggregateParityTests(TimeStatTestCase):
+    """/api/leaderboard/weekly and /api/stats serve the weekly rows from the
+    shared live_cache (the same snapshot the SSE digest pushes) instead of
+    recomputing per request. The cached rows must be identical to a direct
+    query, and must not survive a write that changes them."""
+
+    def test_cached_weekly_rows_match_direct_queries(self):
+        self._register_and_sign_in("cache-user")
+        user_id = self._user_id("cache-user")
+        now = int(time.time())
+        self._seed_completed_session(user_id, now - 7200, now - 3600, category="Research")
+        self._seed_completed_session(user_id, now - 1800, now - 900, category="Other")
+
+        weekly = self.client.get("/api/leaderboard/weekly").get_json()
+        stats = self.client.get("/api/stats").get_json()
+
+        with self.app.test_request_context():
+            since_ts = weekly["since_ts"]
+            direct_board = queries.leaderboard_rows(weekly["server_ts"], since_ts=since_ts)
+            direct_mine = queries.category_rows_for_user(
+                user_id, weekly["server_ts"], since_ts=since_ts
+            )
+            direct_team = queries.category_rows_for_user(
+                None, weekly["server_ts"], since_ts=since_ts
+            )
+
+        self.assertEqual(weekly["leaderboard"], direct_board)
+        self.assertEqual(stats["my_categories_week"], direct_mine)
+        self.assertEqual(stats["team_categories_week"], direct_team)
+
+    def test_cached_weekly_rows_refresh_after_a_write(self):
+        csrf = self._register_and_sign_in("cache-writer")
+        user_id = self._user_id("cache-writer")
+        now = int(time.time())
+        self._seed_completed_session(user_id, now - 3600, now - 1800, category="Research")
+        with sqlite3.connect(self.db_path) as conn:
+            session_id = int(
+                conn.execute(
+                    "SELECT id FROM sessions WHERE user_id = ?", (user_id,)
+                ).fetchone()[0]
+            )
+
+        # Prime the cached snapshot.
+        before = self.client.get("/api/leaderboard/weekly").get_json()
+        self.assertEqual(before["leaderboard"][0]["seconds"], 1800)
+        self.assertEqual(
+            self.client.get("/api/stats").get_json()["my_categories_week"][0]["name"],
+            "Research",
+        )
+
+        # A write through the app invalidates the snapshot, so the next read
+        # must reflect it rather than replaying the primed totals.
+        resp = self.client.post(
+            "/api/session/delete",
+            json={"session_id": session_id},
+            headers={"X-CSRF-Token": csrf},
+        )
+        self.assertEqual(resp.status_code, 200)
+
+        after = self.client.get("/api/leaderboard/weekly").get_json()
+        self.assertEqual(after["leaderboard"], [])
+        self.assertEqual(
+            self.client.get("/api/stats").get_json()["my_categories_week"], []
+        )
+
+
+class StaticGzipCacheTests(TimeStatTestCase):
+    """Versioned static assets are gzipped once per process and reused."""
+
+    def _asset_url(self, suffix=""):
+        return f"/static/app.css?v={self.app.config['STATIC_VERSION']}{suffix}"
+
+    def test_versioned_asset_is_compressed_with_a_stable_etag(self):
+        headers = {"Accept-Encoding": "gzip"}
+        first = self.client.get(self._asset_url(), headers=headers)
+        second = self.client.get(self._asset_url(), headers=headers)
+        self.assertEqual(first.status_code, 200)
+        self.assertEqual(first.headers["Content-Encoding"], "gzip")
+        self.assertEqual(first.headers["ETag"], second.headers["ETag"])
+        self.assertEqual(first.data, second.data)
+        self.assertEqual(
+            first.headers["Cache-Control"], "public, max-age=31536000, immutable"
+        )
+
+        revalidated = self.client.get(
+            self._asset_url(),
+            headers={"Accept-Encoding": "gzip", "If-None-Match": first.headers["ETag"]},
+        )
+        self.assertEqual(revalidated.status_code, 304)
+
+    def test_unknown_version_is_served_but_never_cached(self):
+        """The ?v= value is client-supplied. Caching whatever arrives would
+        let anyone grow the process-wide gzip cache without bound by asking
+        for one asset under endlessly many invented versions."""
+        headers = {"Accept-Encoding": "gzip"}
+        self.client.get(self._asset_url(), headers=headers)  # populate
+        for n in range(25):
+            resp = self.client.get(f"/static/app.css?v=bogus{n}", headers=headers)
+            self.assertEqual(resp.status_code, 200)
+            self.assertEqual(resp.headers["Content-Encoding"], "gzip")
+
+        cache = [
+            obj
+            for obj in gc.get_objects()
+            if isinstance(obj, dict)
+            and obj
+            and all(
+                isinstance(k, str) and k.startswith("/static/") and isinstance(v, tuple)
+                for k, v in obj.items()
+            )
+        ]
+        self.assertTrue(cache, "expected to find the static gzip cache")
+        for entry in cache:
+            self.assertLessEqual(len(entry), 5, f"gzip cache grew unbounded: {list(entry)}")
+
+    def test_unversioned_static_is_not_immutably_cached(self):
+        """The icon font is fetched without ?v= (the @font-face URL resolves
+        relative to the stylesheet), so it must stay revalidatable rather
+        than being pinned in browser caches for a year."""
+        resp = self.client.get("/static/fonts/material-symbols-rounded.woff2")
+        self.assertEqual(resp.status_code, 200)
+        self.assertNotIn("immutable", resp.headers["Cache-Control"])
+        self.assertIn("must-revalidate", resp.headers["Cache-Control"])
+
+
+class EmbeddedFirstSnapshotTests(TimeStatTestCase):
+    """The pages that used to open on a pulsing "Loading…" row now embed
+    their first data snapshot in the HTML (same pattern as the dashboard's
+    initial_data), so they paint populated without an API round trip."""
+
+    def _initial_data(self, html: str) -> dict:
+        match = re.search(r"const initialData = (\{.*?\});\n", html, re.DOTALL)
+        self.assertIsNotNone(match, "page should embed an initialData snapshot")
+        return json.loads(match.group(1))
+
+    def test_pages_embed_their_first_snapshot(self):
+        self._register_and_sign_in("seeded")
+        user_id = self._user_id("seeded")
+        now = int(time.time())
+        self._seed_completed_session(user_id, now - 3600, now - 1800, category="Research")
+
+        weekly = self._initial_data(
+            self.client.get("/weekly-leaderboard").data.decode("utf-8")
+        )
+        self.assertEqual(weekly["leaderboard"][0]["username"], "seeded")
+        self.assertEqual(weekly["leaderboard"][0]["seconds"], 1800)
+        self.assertIn("since_ts", weekly)
+
+        all_time = self._initial_data(
+            self.client.get("/all-time-stats").data.decode("utf-8")
+        )
+        self.assertEqual(all_time["leaderboard"]["leaderboard"][0]["seconds"], 1800)
+        self.assertEqual(
+            {row["name"] for row in all_time["stats"]["my_categories"]}, {"Research"}
+        )
+        self.assertTrue(all_time["stats"]["team_categories"])
+
+        profile = self._initial_data(
+            self.client.get(f"/users/{user_id}").data.decode("utf-8")
+        )
+        self.assertEqual(
+            {row["name"] for row in profile["stats"]["categories"]}, {"Research"}
+        )
+        self.assertEqual(len(profile["grid"]["days"]), len(profile["grid"]["seconds"]))
+        self.assertEqual(profile["grid"]["max_seconds"], 1800)
+        self.assertEqual(profile["recent"]["total"], 1)
+        self.assertFalse(profile["recent"]["has_more"])
+
+    def test_embedded_snapshots_match_their_api_equivalents(self):
+        self._register_and_sign_in("parity")
+        user_id = self._user_id("parity")
+        now = int(time.time())
+        self._seed_completed_session(user_id, now - 7200, now - 5400, category="Other")
+
+        weekly_page = self._initial_data(
+            self.client.get("/weekly-leaderboard").data.decode("utf-8")
+        )
+        weekly_api = self.client.get("/api/leaderboard/weekly").get_json()
+        self.assertEqual(weekly_page["leaderboard"], weekly_api["leaderboard"])
+
+        all_time_page = self._initial_data(
+            self.client.get("/all-time-stats").data.decode("utf-8")
+        )
+        self.assertEqual(
+            all_time_page["leaderboard"]["leaderboard"],
+            self.client.get("/api/leaderboard").get_json()["leaderboard"],
+        )
+        stats_api = self.client.get("/api/stats").get_json()
+        self.assertEqual(
+            all_time_page["stats"]["my_categories"], stats_api["my_categories"]
+        )
+        self.assertEqual(
+            all_time_page["stats"]["team_categories"], stats_api["team_categories"]
+        )
+
+        profile_page = self._initial_data(
+            self.client.get(f"/users/{user_id}").data.decode("utf-8")
+        )
+        self.assertEqual(
+            profile_page["stats"]["categories"],
+            self.client.get(f"/api/users/{user_id}/stats").get_json()["categories"],
+        )
+        grid_api = self.client.get(
+            f"/api/users/{user_id}/activity-grid?days=140"
+        ).get_json()
+        self.assertEqual(profile_page["grid"]["days"], grid_api["days"])
+        self.assertEqual(profile_page["grid"]["seconds"], grid_api["seconds"])
+        self.assertEqual(profile_page["grid"]["max_seconds"], grid_api["max_seconds"])
+        recent_api = self.client.get(
+            f"/api/users/{user_id}/recent-sessions?limit=10&offset=0"
+        ).get_json()
+        self.assertEqual(profile_page["recent"]["sessions"], recent_api["sessions"])
+        self.assertEqual(profile_page["recent"]["total"], recent_api["total"])
 
 
 class ConcurrentSessionGuardTests(TimeStatTestCase):

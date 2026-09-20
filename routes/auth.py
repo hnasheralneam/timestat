@@ -68,12 +68,16 @@ def register_routes(app):
 
         username, username_error = parsing.parse_username(request.form.get("username"))
         code = request.form.get("code", "").strip()
-        raw_username = request.form.get("username") or ""
-        if security.user_login_is_limited(raw_username):
+        # Rate-limit keys use the same whitespace-collapsed form that
+        # parse_username produces (and that the users table stores). Keying
+        # on the raw input let "john doe" / "john  doe" / "john\tdoe" each
+        # draw a separate attempt budget against the same account.
+        limit_username = " ".join((request.form.get("username") or "").split())
+        if security.user_login_is_limited(limit_username):
             flash("Too many login attempts. Please wait a few minutes and try again.", "error")
             return redirect(url_for("login"))
         if username_error:
-            security.user_login_record_failure(raw_username)
+            security.user_login_record_failure(limit_username)
             flash("Invalid username or 6-digit code.", "error")
             return redirect(url_for("login"))
         conn = db.get_db()
@@ -82,11 +86,11 @@ def register_routes(app):
         ).fetchone()
 
         if not user or not check_password_hash(user["code_hash"], code):
-            security.user_login_record_failure(raw_username)
+            security.user_login_record_failure(limit_username)
             flash("Invalid username or 6-digit code.", "error")
             return redirect(url_for("login"))
 
-        security.user_login_clear_failures(raw_username)
+        security.user_login_clear_failures(limit_username)
         session.clear()
         session["user_id"] = user["id"]
         session.permanent = True

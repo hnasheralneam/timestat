@@ -22,6 +22,7 @@ import app as app_module
 import config
 from services import queries
 from utils import helpers
+from auth import security
 
 
 def extract_csrf(html: bytes) -> str:
@@ -42,6 +43,9 @@ class TimeStatTestCase(unittest.TestCase):
         self.env_patch.start()
         self.app = app_module.create_app()
         self.app.config["TESTING"] = True
+        # Writes made directly via sqlite3 in tests bypass live_cache.invalidate();
+        # a zero check interval makes the cache notice them on the next read.
+        self.app.config["LIVE_CACHE_CHECK_INTERVAL"] = 0
         self.client = self.app.test_client()
 
     def tearDown(self) -> None:
@@ -122,6 +126,53 @@ class AccountScopedRateLimitTests(TimeStatTestCase):
         self.assertIn(b"Too many login attempts", resp.data)
 
 
+class LoginLockoutKeyNormalizationTests(TimeStatTestCase):
+    def test_whitespace_variants_share_one_attempt_budget(self):
+        """Rate-limit buckets are keyed on the whitespace-collapsed username
+        (what parse_username produces and the users table stores). Keying on
+        the raw field let "a b", "a  b" and "a\tb" each draw a separate
+        budget against the same account, multiplying the real attempt
+        ceiling for any username containing a space."""
+        code = self._register("multi word")
+        page = self.client.get("/dashboard")
+        self._logout(extract_csrf(page.data))
+
+        variants = ["multi word", "multi  word", "multi\tword", " multi word "]
+        for i in range(config.LOGIN_MAX_ATTEMPTS):
+            page = self.client.get("/login")
+            csrf = extract_csrf(page.data)
+            self.client.post(
+                "/login",
+                data={
+                    "username": variants[i % len(variants)],
+                    "code": "000000",
+                    "csrf_token": csrf,
+                },
+                follow_redirects=True,
+            )
+
+        # The budget is now spent regardless of which spelling is used, and
+        # even the correct code is refused.
+        page = self.client.get("/login")
+        csrf = extract_csrf(page.data)
+        resp = self.client.post(
+            "/login",
+            data={"username": "multi word", "code": code, "csrf_token": csrf},
+            follow_redirects=True,
+        )
+        self.assertIn(b"Too many login attempts", resp.data)
+
+        with sqlite3.connect(self.db_path) as conn:
+            keys = [
+                row[0]
+                for row in conn.execute(
+                    "SELECT key FROM auth_attempts WHERE scope = ?",
+                    (security.LOGIN_ACCOUNT_SCOPE,),
+                ).fetchall()
+            ]
+        self.assertEqual(len(keys), 1, f"expected one account bucket, got {keys}")
+
+
 class LoginCsrfTests(TimeStatTestCase):
     def test_login_without_csrf_token_is_rejected(self):
         self._register("csrfuser")
@@ -164,6 +215,138 @@ class FrontendResilienceTests(unittest.TestCase):
             page = (self.ROOT / "templates" / name).read_text()
             self.assertIn("Array.isArray(window.MEDALS)", page, name)
             self.assertNotIn("window.MEDALS[row.rank - 1]", page, name)
+
+    def test_tracker_fields_are_named_on_mobile(self):
+        """The session-tracker inputs must always be labelled on a phone.
+
+        They used to be named by a shortened placeholder because
+        `.tracker-section label > span` was hidden to buy vertical space, and
+        reading an unset data-mobile-placeholder assigned undefined - every
+        mobile user saw the literal word "undefined" in both fields. The tab
+        bar freed that space, so the real labels are visible again and the
+        whole swap is gone. Guard both halves: the labels must not be hidden,
+        and no remnant of the swap may survive.
+        """
+        dashboard = (self.ROOT / "templates" / "dashboard.html").read_text()
+        style = (self.ROOT / "static" / "style.css").read_text()
+
+        for fragment in ("mobilePlaceholder", "data-mobile-placeholder"):
+            self.assertNotIn(fragment, dashboard, "placeholder swap must be fully removed")
+        self.assertNotIn("tracker-section label > span", style)
+
+        for input_id in ('id="categoryId"', 'id="sessionNote"'):
+            start = dashboard.index(input_id)
+            tag = dashboard[dashboard.rindex("<input", 0, start) : dashboard.index(">", start) + 1]
+            self.assertIn("placeholder=", tag, f"{input_id} still needs a placeholder")
+            self.assertNotIn('placeholder=""', tag, input_id)
+
+    def test_stylesheet_has_exactly_one_mobile_breakpoint(self):
+        """Mobile CSS used to be spread over four overlapping blocks (two at
+        640px, two at 768px, one at 767px) that defined the same components
+        more than once and left a 1px seam at exactly 768px. There is now one
+        mobile query, and it is the exact complement of Tailwind's `md:`."""
+        style = (self.ROOT / "static" / "style.css").read_text()
+        max_queries = re.findall(r"@media \(max-width: ([^)]+)\)", style)
+        self.assertEqual(max_queries, ["767.98px"], "expected a single mobile breakpoint")
+
+        common = (self.ROOT / "static" / "js" / "common.js").read_text()
+        self.assertIn('window.MOBILE_QUERY = "(max-width: 767.98px)"', common)
+        # No template or script may hard-code a competing breakpoint.
+        for path in list((self.ROOT / "templates").glob("*.html")) + [common]:
+            text = path.read_text() if isinstance(path, Path) else path
+            self.assertNotIn("max-width: 767px", text)
+            self.assertNotIn("max-width: 640px", text)
+
+    def test_app_css_is_the_committed_build_output(self):
+        """static/app.css is generated (npm run css) - a hand edit there is
+        silently reverted on the next build, so it must stay byte-identical
+        to tailwind.css + style.css."""
+        root = self.ROOT / "static"
+        expected = (root / "tailwind.css").read_bytes() + (root / "style.css").read_bytes()
+        self.assertEqual(
+            (root / "app.css").read_bytes(),
+            expected,
+            "static/app.css is stale or hand-edited - run `npm run css`",
+        )
+
+    def test_bottom_overlays_clear_the_tab_bar(self):
+        """The install prompt, SW update notice, toast container and collab
+        notifications were all pinned at `bottom-4`, so they stacked on each
+        other - and the new tab bar sits in the same strip. They share one
+        class that offsets by the tab bar, dock and safe-area inset."""
+        base = (self.ROOT / "templates" / "base.html").read_text()
+        common = (self.ROOT / "static" / "js" / "common.js").read_text()
+        dashboard = (self.ROOT / "templates" / "dashboard.html").read_text()
+        style = (self.ROOT / "static" / "style.css").read_text()
+
+        for name, text in (("base.html", base), ("common.js", common), ("dashboard.html", dashboard)):
+            self.assertNotIn("bottom-4", text, f"{name} still pins an overlay at a bare bottom-4")
+        # Every element that is position-fixed to the bottom edge, wherever it
+        # is built: both #swUpdateNotice variants and #installAppBtn in
+        # base.html, the toast container in common.js, and the dashboard's
+        # collaboration notifications.
+        fixed_bottom = re.findall(r'"fixed [^"]*"', base + common + dashboard)
+        fixed_bottom += re.findall(r"'fixed [^']*'", base + common + dashboard)
+        self.assertTrue(fixed_bottom, "expected to find the fixed-position overlays")
+        for cls in fixed_bottom:
+            if "inset-0" in cls:
+                continue  # full-screen modal backdrops, not bottom-anchored
+            self.assertIn("app-bottom-float", cls, f"overlay not offset for the tab bar: {cls}")
+        self.assertIn(".app-bottom-float {", style)
+        self.assertIn("--app-tabbar-h", style)
+        self.assertIn("env(safe-area-inset-bottom", style)
+        self.assertIn("viewport-fit=cover", base)
+
+    def test_every_icon_exists_in_the_subsetted_font(self):
+        """static/fonts/material-symbols-rounded.woff2 is subsetted to just the
+        ligatures this app uses, and there is no source font in the repo to
+        regenerate it from. A ligature the font doesn't ship renders as its
+        literal name - "account_circle" as words in the middle of the UI."""
+        try:
+            from fontTools.ttLib import TTFont
+        except ImportError:
+            self.skipTest("fontTools not installed")
+
+        font = TTFont(self.ROOT / "static" / "fonts" / "material-symbols-rounded.woff2")
+        char_of = {}
+        for codepoint, glyph in font.getBestCmap().items():
+            char_of.setdefault(glyph, chr(codepoint))
+        available = set()
+        for lookup in font["GSUB"].table.LookupList.Lookup:
+            for sub in lookup.SubTable:
+                sub = getattr(sub, "ExtSubTable", sub)
+                for first, ligs in getattr(sub, "ligatures", {}).items():
+                    for lig in ligs:
+                        parts = [first] + list(lig.Component)
+                        if all(part in char_of for part in parts):
+                            available.add("".join(char_of[part] for part in parts))
+        self.assertIn("timer", available, "font did not decode - check the extractor")
+
+        # Known pre-existing offender, on an admin page outside this work's
+        # scope: admin_dashboard.html renders "stop_circle" as literal text.
+        # Subset-only, so the fix is to use a ligature the font ships.
+        known_bad = {("admin_dashboard.html", "stop_circle")}
+        missing = set()
+        for path in sorted((self.ROOT / "templates").glob("*.html")):
+            for name in re.findall(
+                r'material-symbols-rounded[^>]*>\s*([a-z0-9_]+)\s*<', path.read_text()
+            ):
+                if name not in available:
+                    missing.add((path.name, name))
+        self.assertLessEqual(
+            missing, known_bad, f"icons missing from the font subset: {sorted(missing - known_bad)}"
+        )
+
+    def test_history_cells_are_placed_by_semantic_class(self):
+        """The mobile history card used to place cells with
+        `td:nth-child(1..5)`, which is coupled to column order and count -
+        and user.html omits the actions column for non-owners."""
+        style = (self.ROOT / "static" / "style.css").read_text()
+        self.assertNotIn(".history-table td:nth-child", style)
+        for name in ("dashboard.html", "user.html"):
+            text = (self.ROOT / "templates" / name).read_text()
+            for cls in ("hist-cat", "hist-dur", "hist-note", "hist-when", "hist-actions"):
+                self.assertIn(cls, text, f"{name} is missing .{cls}")
 
     def test_dashboard_bootstrap_handles_widget_failure(self):
         dashboard = (self.ROOT / "templates" / "dashboard.html").read_text()
@@ -324,6 +507,61 @@ class AutoPauseAlertTests(TimeStatTestCase):
         self.assertEqual(second["current_session"]["status"], "paused")
         self.assertTrue(first["auto_paused_alert"])
         self.assertFalse(second["auto_paused_alert"])
+
+    def test_dashboard_render_does_not_consume_the_alert(self):
+        """Rendering /dashboard must not claim the one-shot auto-pause alert.
+
+        The page embeds a status snapshot, but an HTML render is also
+        triggered by link-hover prefetches (common.js) and service-worker
+        navigation fetches - neither runs the page's JS, so a claim there
+        would burn the alert with nobody watching. The live stream (or an
+        explicit /api/status poll) delivers it instead.
+        """
+        self._register("prefetched")
+        page = self.client.get("/dashboard")
+        csrf = extract_csrf(page.data)
+        self.client.post(
+            "/api/session/start",
+            json={"category_name": "Other", "note": "long haul"},
+            headers={"X-CSRF-Token": csrf},
+        )
+        session_id = self._active_session_id()
+        now = int(time.time())
+        limit_seconds = config.MAX_SESSION_RUNNING_HOURS * 3600
+        with sqlite3.connect(self.db_path) as conn:
+            conn.execute(
+                "UPDATE sessions SET start_ts=? WHERE id=?",
+                (now - limit_seconds - 60, session_id),
+            )
+            conn.commit()
+        queries.pause_overdue_running_sessions(self.db_path)
+
+        # Two renders (e.g. a prefetch then the real navigation) of every page
+        # that embeds a status payload. The dock seeding added the three
+        # non-dashboard pages to this path, and each one has to pass
+        # claim_alert=False or it eats the alert nobody ever sees.
+        for _ in range(2):
+            for path in ("/dashboard", "/weekly-leaderboard", "/all-time-stats", "/users/1"):
+                self.assertEqual(self.client.get(path).status_code, 200, path)
+        with sqlite3.connect(self.db_path) as conn:
+            still_pending = conn.execute(
+                "SELECT auto_pause_pending_alert FROM sessions WHERE id=?",
+                (session_id,),
+            ).fetchone()[0]
+        self.assertEqual(still_pending, 1, "page render must leave the alert pending")
+
+        # ...and every one of those pages seeds the mobile session dock with
+        # the running session, so it paints without a round trip.
+        for path in ("/dashboard", "/weekly-leaderboard", "/all-time-stats", "/users/1"):
+            body = self.client.get(path).data.decode()
+            seed = re.search(r"TIMESTAT_INITIAL_STATUS = (.*);", body)
+            self.assertIsNotNone(seed, f"{path} does not seed the dock")
+            self.assertIn('"category_name"', seed.group(1), path)
+
+        # The embedded snapshot reports no alert, and the first real status
+        # read still delivers it exactly once.
+        self.assertTrue(self.client.get("/api/status").get_json()["auto_paused_alert"])
+        self.assertFalse(self.client.get("/api/status").get_json()["auto_paused_alert"])
 
 
 class WindowedAggregationParityTests(TimeStatTestCase):
@@ -554,8 +792,14 @@ class AdminSessionControlTests(TimeStatTestCase):
             f"/admin/api/users/{user_id}/session/pause",
             headers={"X-CSRF-Token": csrf},
         )
-        self.assertEqual(resp.status_code, 302)
-        self.assertIn("/admin/login", resp.headers.get("Location", ""))
+        # JSON endpoints answer 401 (not a redirect to the HTML login page,
+        # which fetch() would follow and postJson would then choke on).
+        self.assertEqual(resp.status_code, 401)
+        self.assertEqual(resp.get_json(), {"error": "Unauthorized"})
+        # Page routes still redirect.
+        page_resp = self.client.get("/admin")
+        self.assertEqual(page_resp.status_code, 302)
+        self.assertIn("/admin/login", page_resp.headers.get("Location", ""))
 
 
 class DeletedUserSessionGuardTests(TimeStatTestCase):

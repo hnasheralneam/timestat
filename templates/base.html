@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="csrf-token" content="{{ csrf_token }}">
   <link rel="manifest" href="{{ static_v('manifest.json') }}">
   <title>{{ title or "TimeStat" }}</title>
@@ -13,7 +13,19 @@
     window.__SERVER_THEME__ = {% if user %}{ palette: {{ (user.theme_palette or "gruvbox")|tojson }}, color: {{ (user.theme_custom_color or "#458588")|tojson }} }{% else %}null{% endif %};
   </script>
   <script src="{{ static_v('js/theme.js') }}"></script>
-  <link rel="preload" href="{{ static_v('fonts/material-symbols-rounded.woff2') }}" as="font" type="font/woff2" crossorigin>
+  {# Deliberately unversioned: @font-face in style.css uses a stylesheet-relative
+     url("fonts/...woff2"), which resolves without app.css's ?v= query. A
+     versioned preload therefore never matched the font the CSS actually
+     requests - the browser downloaded the file twice and warned that the
+     preload went unused. The URL below matches, so the preload is real. #}
+  <link rel="preload" href="{{ url_for('static', filename='fonts/material-symbols-rounded.woff2') }}" as="font" type="font/woff2" crossorigin>
+  {% if preload_charts %}
+  {# Chart pages: start the ~200KB Chart.js download while the HTML is still
+     parsing instead of after DOMContentLoaded (when common.js's ensureCharts
+     would otherwise first request it). The URL must match the one
+     ensureCharts builds - same path and ?v= - for the preload to be used. #}
+  <link rel="preload" href="{{ static_v('vendor/chart.umd.min.js') }}" as="script"{% if preload_charts == 'desktop' %} media="(min-width: 768px)"{% endif %}>
+  {% endif %}
   <link rel="icon" href="{{ static_v('logo.svg') }}" type="image/svg+xml">
   {# app.css is the committed concatenation of tailwind.css + style.css (npm run css) - one render-blocking request instead of two. #}
   <link rel="stylesheet" href="{{ static_v('app.css') }}">
@@ -35,6 +47,7 @@
     });
     window.formatHours = window.formatHours || ((seconds) => (seconds / 3600).toFixed(2));
     window.tsToLocal = window.tsToLocal || ((ts) => ts ? new Date(ts * 1000).toLocaleString() : "-");
+    window.formatCompactDateTime = window.formatCompactDateTime || window.tsToLocal;
     window.getCsrfToken = window.getCsrfToken || (() => {
       const meta = document.querySelector('meta[name="csrf-token"]');
       return meta ? meta.getAttribute("content") || "" : "";
@@ -74,7 +87,7 @@
      start from a DOMContentLoaded listener, not at parse time. #}
   <script src="{{ static_v('js/common.js') }}" defer onerror="window.__timestatCommonLoadFailed = true;"></script>
 </head>
-<body class="min-h-screen">
+<body class="min-h-screen{% if user %} has-tabbar{% endif %}">
   <div class="app-shell max-w-6xl mx-auto px-4 py-6">
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}
@@ -105,54 +118,48 @@
             {% if active_page != "dashboard" %}
             <a href="{{ url_for('dashboard') }}" class="neu-btn border border-gb-bg2 bg-gb-bg1 text-gb-fg px-2 py-2 inline-flex items-center justify-center gap-1" aria-label="Dashboard" data-tooltip="Dashboard">
               <span class="material-symbols-rounded" aria-hidden="true">dashboard</span>
-              <span class="desktop-nav-label hidden md:inline text-xs font-semibold">Dashboard</span>
+              <span class="hidden md:inline text-xs font-semibold">Dashboard</span>
             </a>
             {% endif %}
             {% if active_page != "weekly_leaderboard" %}
             <a href="{{ url_for('weekly_leaderboard') }}" class="neu-btn border border-gb-bg2 bg-gb-bg1 text-gb-fg px-2 py-2 inline-flex items-center justify-center gap-1" aria-label="Weekly leaderboard" data-tooltip="Weekly leaderboard">
               <span class="material-symbols-rounded" aria-hidden="true">leaderboard</span>
-              <span class="desktop-nav-label hidden md:inline text-xs font-semibold">Leaderboard</span>
+              <span class="hidden md:inline text-xs font-semibold">Leaderboard</span>
             </a>
             {% endif %}
             {% if active_page != "all_time_stats" %}
             <a href="{{ url_for('all_time_stats') }}" class="neu-btn border border-gb-bg2 bg-gb-bg1 text-gb-fg px-2 py-2 inline-flex items-center justify-center gap-1" aria-label="All-time stats" data-tooltip="All-time stats">
               <span class="material-symbols-rounded" aria-hidden="true">insights</span>
-              <span class="desktop-nav-label hidden md:inline text-xs font-semibold">All-time</span>
+              <span class="hidden md:inline text-xs font-semibold">All-time</span>
             </a>
             {% endif %}
             <button id="openSettingsBtn" class="neu-btn border border-gb-bg2 bg-gb-bg1 text-gb-fg p-2 inline-flex items-center justify-center" type="button" aria-label="Account settings" data-tooltip="Account settings">
               <span class="material-symbols-rounded" aria-hidden="true">settings</span>
-              <span class="mobile-tab-label">Settings</span>
             </button>
           {% endif %}
           {% if is_admin and active_page != "admin_dashboard" %}
           <a href="{{ url_for('admin_dashboard') }}" class="neu-btn border border-gb-bg2 bg-gb-bg1 text-gb-fg p-2 inline-flex items-center justify-center" aria-label="Admin dashboard" data-tooltip="Admin dashboard">
             <span class="material-symbols-rounded" aria-hidden="true">admin_panel_settings</span>
-            <span class="mobile-tab-label">Admin</span>
           </a>
           {% endif %}
           {% if is_admin and active_page != "admin_analytics" %}
           <a href="{{ url_for('admin_analytics') }}" class="neu-btn border border-gb-bg2 bg-gb-bg1 text-gb-fg p-2 inline-flex items-center justify-center" aria-label="Team analytics" data-tooltip="Team analytics">
             <span class="material-symbols-rounded" aria-hidden="true">analytics</span>
-            <span class="mobile-tab-label">Analytics</span>
           </a>
           {% endif %}
           <button class="theme-toggle neu-btn text-gb-fg border-gb-bg2 bg-gb-bg1 p-2 inline-flex items-center justify-center" data-tooltip="Switch to dark mode" aria-label="Switch to dark mode" type="button">
             <span class="material-symbols-rounded" aria-hidden="true">dark_mode</span>
-            <span class="mobile-tab-label">Theme</span>
           </button>
           {% if user %}
           <form action="{{ url_for('logout') }}" method="post">
             <button class="neu-btn bg-gb-red text-gb-bg0 border-gb-red/80 p-2 inline-flex items-center justify-center" type="submit" aria-label="Sign out" data-tooltip="Sign out">
               <span class="material-symbols-rounded" aria-hidden="true">logout</span>
-              <span class="mobile-tab-label">Sign out</span>
             </button>
           </form>
           {% elif is_admin %}
           <form action="{{ url_for('admin_logout') }}" method="post">
             <button class="neu-btn bg-gb-red text-gb-bg0 border-gb-red/80 p-2 inline-flex items-center justify-center" type="submit" aria-label="Admin sign out" data-tooltip="Admin sign out">
               <span class="material-symbols-rounded" aria-hidden="true">logout</span>
-              <span class="mobile-tab-label">Sign out</span>
             </button>
           </form>
           {% endif %}
@@ -307,6 +314,105 @@
     </footer>
     {% endblock %}
   </div>
+
+  {% if user %}
+  {# ---- Mobile app shell -------------------------------------------------
+     The tab bar replaces the header's horizontally-scrolling icon strip below
+     768px. Every tab carries a visible text label: the strip's only labels
+     were `data-tooltip`s, and tooltips are pointer-driven, so those controls
+     were effectively unlabelled on any touch device.
+
+     These live outside .app-shell on purpose - `position: fixed` inside a
+     padded container that sets `overflow-x` is a trap.
+     ---------------------------------------------------------------------- #}
+  <script>
+    {# Every logged-in page now embeds a status payload (routes/pages.py), so the
+       dock paints the running session on first frame instead of after a fetch.
+       Pages without one fall back to GET /api/status. #}
+    {% set _status = initial_data.get('status') if initial_data is defined and initial_data else None %}
+    window.TIMESTAT_INITIAL_STATUS = {{ (_status.get('current_session') if _status else None)|tojson }};
+  </script>
+
+  <div id="sessionDock" class="session-dock" aria-live="off">
+    <div class="session-dock-info">
+      <div id="sessionDockCategory" class="session-dock-cat"></div>
+      <div id="sessionDockTime" class="session-dock-time">00:00:00</div>
+    </div>
+    <div class="session-dock-actions">
+      <button id="sessionDockPause" class="neu-btn neu-btn-sm bg-gb-yellow text-gb-bg0 border-gb-yellow/80 inline-flex items-center" type="button" aria-label="Pause session">
+        <span class="material-symbols-rounded" aria-hidden="true">pause</span>
+      </button>
+      <button id="sessionDockResume" class="neu-btn neu-btn-sm bg-gb-green text-gb-bg0 border-gb-green/80 inline-flex items-center hidden" type="button" aria-label="Resume session">
+        <span class="material-symbols-rounded" aria-hidden="true">play_arrow</span>
+      </button>
+      <button id="sessionDockFinish" class="neu-btn neu-btn-sm bg-gb-blue text-gb-bg0 border-gb-blue/80 inline-flex items-center" type="button" aria-label="Finish session">
+        <span class="material-symbols-rounded" aria-hidden="true">check_circle</span>
+      </button>
+    </div>
+  </div>
+
+  <nav class="mobile-tabbar" aria-label="Main">
+    <a href="{{ url_for('dashboard') }}" class="mobile-tab" {% if active_page == 'dashboard' %}aria-current="page"{% endif %}>
+      <span class="material-symbols-rounded" aria-hidden="true">timer</span>
+      <span>Track</span>
+    </a>
+    <a href="{{ url_for('weekly_leaderboard') }}" class="mobile-tab" {% if active_page == 'weekly_leaderboard' %}aria-current="page"{% endif %}>
+      <span class="material-symbols-rounded" aria-hidden="true">leaderboard</span>
+      <span>Team</span>
+    </a>
+    <a href="{{ url_for('all_time_stats') }}" class="mobile-tab" {% if active_page == 'all_time_stats' %}aria-current="page"{% endif %}>
+      <span class="material-symbols-rounded" aria-hidden="true">insights</span>
+      <span>Stats</span>
+    </a>
+    <button id="openMeSheetBtn" class="mobile-tab" type="button" aria-haspopup="dialog" aria-expanded="false" {% if active_page == 'user_profile' %}aria-current="page"{% endif %}>
+      <span class="material-symbols-rounded" aria-hidden="true">person</span>
+      <span>Me</span>
+    </button>
+  </nav>
+
+  {# Absorbs everything else the old icon strip held. #}
+  <div id="meSheet" class="mobile-sheet hidden">
+    <div id="meSheetBackdrop" class="absolute inset-0 bg-gb-bg0/60 backdrop-blur-sm"></div>
+    <div class="mobile-sheet-panel neu-surface" role="dialog" aria-modal="true" aria-labelledby="meSheetTitle">
+      <h2 id="meSheetTitle" class="font-semibold text-base text-gb-fg flex items-center gap-2 mb-2 px-1">
+        <span class="material-symbols-rounded" aria-hidden="true">person</span>
+        {{ user.username }}
+      </h2>
+      <a href="{{ url_for('user_profile', user_id=user.id) }}" class="mobile-sheet-item">
+        <span class="material-symbols-rounded" aria-hidden="true">person_outline</span>
+        My profile
+      </a>
+      <button id="meSheetSettings" class="mobile-sheet-item" type="button">
+        <span class="material-symbols-rounded" aria-hidden="true">manage_accounts</span>
+        Account settings
+      </button>
+      <button class="mobile-sheet-item theme-toggle" type="button">
+        <span class="material-symbols-rounded" aria-hidden="true">dark_mode</span>
+        Switch theme
+      </button>
+      {% if is_admin %}
+      <a href="{{ url_for('admin_dashboard') }}" class="mobile-sheet-item">
+        <span class="material-symbols-rounded" aria-hidden="true">admin_panel_settings</span>
+        Admin dashboard
+      </a>
+      <a href="{{ url_for('admin_analytics') }}" class="mobile-sheet-item">
+        <span class="material-symbols-rounded" aria-hidden="true">analytics</span>
+        Team analytics
+      </a>
+      {% endif %}
+      <form action="{{ url_for('logout') }}" method="post">
+        <button class="mobile-sheet-item text-gb-red" type="submit">
+          <span class="material-symbols-rounded" aria-hidden="true">logout</span>
+          Sign out
+        </button>
+      </form>
+      <button id="closeMeSheetBtn" class="mobile-sheet-item justify-center" type="button">
+        <span class="material-symbols-rounded" aria-hidden="true">close</span>
+        Close
+      </button>
+    </div>
+  </div>
+  {% endif %}
   {% if user %}
   <script>
     (function () {
@@ -518,7 +624,7 @@
         if (document.getElementById('swUpdateNotice')) return;
         const notice = document.createElement('div');
         notice.id = 'swUpdateNotice';
-        notice.className = 'fixed bottom-4 left-4 right-4 z-50 neu-surface px-3 py-2 text-sm text-gb-fg flex items-center justify-between gap-3';
+        notice.className = 'fixed app-bottom-float left-4 right-4 z-50 neu-surface px-3 py-2 text-sm text-gb-fg flex items-center justify-between gap-3';
         notice.innerHTML = '<span>An update is available.</span>';
         const btn = document.createElement('button');
         btn.type = 'button';
@@ -531,7 +637,7 @@
     }
     if (window.__timestatCommonLoadFailed) {
       const notice = document.createElement('div');
-      notice.className = 'fixed bottom-4 left-4 right-4 z-50 neu-surface px-3 py-2 text-sm text-gb-yellow';
+      notice.className = 'fixed app-bottom-float left-4 right-4 z-50 neu-surface px-3 py-2 text-sm text-gb-yellow';
       notice.textContent = 'Some optional enhancements are unavailable. Core tracking remains active; refresh to retry.';
       document.body.prepend(notice);
     }
@@ -548,7 +654,7 @@
         const btn = document.createElement('button');
         btn.id = 'installAppBtn';
         btn.type = 'button';
-        btn.className = 'fixed bottom-4 right-4 z-40 neu-btn bg-gb-blue text-gb-bg0 border-gb-blue/80 px-3 py-2 inline-flex items-center gap-1 text-sm shadow-lg';
+        btn.className = 'fixed app-bottom-float right-4 z-40 neu-btn bg-gb-blue text-gb-bg0 border-gb-blue/80 px-3 py-2 inline-flex items-center gap-1 text-sm shadow-lg';
         btn.innerHTML = '<span class="material-symbols-rounded" aria-hidden="true">install_desktop</span> Install app';
         btn.addEventListener('click', async () => {
           if (!deferredPrompt) return;

@@ -72,6 +72,8 @@ def create_app() -> Flask:
 
     app = Flask(__name__)
     app.config["STATIC_VERSION"] = _compute_static_version(app.static_folder)
+    # Process-wide live snapshots must not outlive the app that filled them.
+    live_cache.reset()
 
     @app.template_global()
     def static_v(filename):
@@ -220,14 +222,40 @@ def create_app() -> Flask:
             "object-src 'none'",
         )
         if request.path.startswith("/static/"):
-            # Static URLs carry a content-hash version parameter (see
+            # Versioned static URLs carry a content-hash parameter (see
             # static_v), so a new deploy means new URLs. Content is therefore
             # effectively immutable and can be cached for a year, by both the
             # browser and any reverse proxy in front of the app. Set (not
             # setdefault): send_file already emits "Cache-Control: no-cache"
             # for the versioned asset, which must be overridden.
-            response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+            #
+            # Unversioned static requests do happen - notably the icon font,
+            # which @font-face references relative to the stylesheet and so
+            # fetches without the ?v= query. Those must NOT be immutable, or
+            # a changed file stays stale in browser caches for a year with no
+            # URL change to break it. Give them a day plus revalidation.
+            if request.args.get("v"):
+                response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+            else:
+                response.headers["Cache-Control"] = "public, max-age=86400, must-revalidate"
         return response
+
+    # Gzipped bodies of versioned static assets, keyed by path. The static
+    # directory is immutable for the process lifetime (STATIC_VERSION is
+    # computed once at startup), so a body compressed once is valid until
+    # restart. Without this, every request for chart.umd.min.js (~200KB)
+    # re-gzipped it at level 6 - including revalidations, which have to
+    # compress just to learn the ETag matches. Caddy's `encode`
+    # (deploy/Caddyfile) makes this redundant behind the documented proxy,
+    # but LAN/HTTP deployments hit the app directly.
+    #
+    # Only the exact current STATIC_VERSION is cached. The ?v= value is
+    # client-supplied, so keying on it as given would let anyone grow this
+    # dict without bound by requesting one asset under endlessly many made-up
+    # versions; restricting it to the single version this process serves
+    # bounds the cache at the number of files under static/.
+    static_gzip_cache: dict[str, tuple[bytes, str]] = {}
+    static_gzip_lock = threading.Lock()
 
     @app.after_request
     def compress_response(response):
@@ -258,24 +286,41 @@ def create_app() -> Flask:
         }:
             return response
 
-        # get_data() materializes a response. The allowlist above excludes the
-        # streaming endpoint, and the remaining responses are bounded assets
-        # or API/template bodies.
-        if response.direct_passthrough:
-            response.direct_passthrough = False
-        body = response.get_data()
-        if len(body) < 500:
-            return response
-        compressed = gzip.compress(body, compresslevel=6)
-        if len(compressed) >= len(body):
-            return response
-        # The original send_file ETag identifies the uncompressed bytes, but
-        # this response is now the compressed byte stream - replace it with a
-        # weak ETag over the compressed bytes (deterministic for a given body
-        # at this fixed compression level). Without this the old code dropped
-        # the ETag entirely and no compressed response could ever 304, forcing
-        # full re-downloads on every hard reload.
-        gzip_etag = f'W/"gzip-{hashlib.md5(compressed).hexdigest()}"'
+        is_static = (
+            request.path.startswith("/static/")
+            and request.method in {"GET", "HEAD"}
+            and response.status_code == 200
+            and request.args.get("v") == app.config["STATIC_VERSION"]
+        )
+        cached = static_gzip_cache.get(request.path) if is_static else None
+        if cached is not None:
+            compressed, gzip_etag = cached
+            if response.direct_passthrough:
+                # send_file never materialized the file wrapper; drop
+                # passthrough before the body is replaced below.
+                response.direct_passthrough = False
+        else:
+            # get_data() materializes a response. The allowlist above excludes
+            # the streaming endpoint, and the remaining responses are bounded
+            # assets or API/template bodies.
+            if response.direct_passthrough:
+                response.direct_passthrough = False
+            body = response.get_data()
+            if len(body) < 500:
+                return response
+            compressed = gzip.compress(body, compresslevel=6)
+            if len(compressed) >= len(body):
+                return response
+            # The original send_file ETag identifies the uncompressed bytes,
+            # but this response is now the compressed byte stream - replace it
+            # with a weak ETag over the compressed bytes (deterministic for a
+            # given body at this fixed compression level). Without this the
+            # old code dropped the ETag entirely and no compressed response
+            # could ever 304, forcing full re-downloads on every hard reload.
+            gzip_etag = f'W/"gzip-{hashlib.md5(compressed).hexdigest()}"'
+            if is_static:
+                with static_gzip_lock:
+                    static_gzip_cache[request.path] = (compressed, gzip_etag)
         if (
             request.method in {"GET", "HEAD"}
             and response.status_code == 200

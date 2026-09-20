@@ -79,7 +79,7 @@
                 <span class="material-symbols-rounded" aria-hidden="true">checklist</span>
                 Manage tasks
               </button>
-              <form action="{{ url_for('admin_delete_user', user_id=row.id) }}" method="post" onsubmit="return confirm('Delete {{ row.username|e }} and all tasks? This cannot be undone.');">
+              <form action="{{ url_for('admin_delete_user', user_id=row.id) }}" method="post" data-confirm="Delete {{ row.username|e }} and all of their tasks? This cannot be undone.">
                 <button class="neu-btn bg-gb-red text-gb-bg0 border-gb-red/80 inline-flex items-center gap-1 text-xs px-2 py-1" type="submit">
                   <span class="material-symbols-rounded" aria-hidden="true">delete</span>
                   Delete user
@@ -130,7 +130,7 @@
         <tr class="border-t border-gb-bg2">
           <td class="py-2" data-label="Category">{{ category.name }}</td>
           <td class="py-2" data-label="Action">
-            <form action="{{ url_for('admin_delete_category', category_id=category.id) }}" method="post" onsubmit="return confirm('Remove category {{ category.name|e }} from available options? Existing logged tasks will keep their saved category names.');">
+            <form action="{{ url_for('admin_delete_category', category_id=category.id) }}" method="post" data-confirm="Remove category '{{ category.name|e }}' from the available options? Existing logged tasks keep their saved category names.">
               <button class="neu-btn bg-gb-red text-gb-bg0 border-gb-red/80 inline-flex items-center gap-1 text-xs px-2 py-1" type="submit">
                 <span class="material-symbols-rounded" aria-hidden="true">delete</span>
                 Remove
@@ -217,6 +217,34 @@
 
   // escapeHtml, formatDuration, tsToLocal, and postJson are provided
   // globally by static/js/common.js (loaded from base.html).
+
+  // Once the admin cookie expires there is nothing useful to do on this page
+  // but sign in again. A GET hits admin_required and answers 401; a POST is
+  // rejected a step earlier by the CSRF check (the cleared session no longer
+  // holds the expected token), so both messages mean the same thing here.
+  function isUnauthorized(err) {
+    const message = (err && err.message) || "";
+    return message.includes("Unauthorized") || message.includes("CSRF");
+  }
+  function redirectToAdminLogin() {
+    window.location.href = "/admin/login";
+  }
+
+  // Native confirm() dialogs replaced with the app's modal (showAppConfirm)
+  // for the plain-form actions: intercept the submit, ask, then submit the
+  // form for real. common.js has already injected the CSRF field and its
+  // own submit handler disables the buttons; requestSubmit() re-runs both.
+  document.querySelectorAll("form[data-confirm]").forEach((form) => {
+    let confirmed = false;
+    form.addEventListener("submit", async (event) => {
+      if (confirmed) return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      if (!await window.showAppConfirm(form.getAttribute("data-confirm"))) return;
+      confirmed = true;
+      form.requestSubmit();
+    });
+  });
 
   function setTaskModalMessage(text, isError = false) {
     taskModalMessage.textContent = text || "";
@@ -306,6 +334,7 @@
       setTaskMessageTruncated(data);
     } catch (err) {
       if (err.name === "AbortError") return;
+      if (isUnauthorized(err)) { redirectToAdminLogin(); return; }
       if (requestSequence !== taskRequestSequence || state.activeUserId !== requestedUserId) return;
       setTaskModalMessage(err.message || "Could not load tasks", true);
       state.tasks = [];
@@ -359,7 +388,7 @@
       setTaskModalMessage("Select at least one task to delete.", true);
       return;
     }
-    if (!confirm(`Delete ${ids.length} selected task(s) for ${state.activeUsername}?`)) return;
+    if (!await window.showAppConfirm(`Delete ${ids.length} selected task(s) for ${state.activeUsername}?`)) return;
     const targetUserId = state.activeUserId;
     deleteSelectedTasksBtn.disabled = true;
     try {
@@ -373,6 +402,7 @@
       syncUserTaskSummary();
       setTaskModalMessage(`Deleted ${data.deleted_count} task(s).`);
     } catch (err) {
+      if (isUnauthorized(err)) { redirectToAdminLogin(); return; }
       setTaskModalMessage(err.message || "Could not delete tasks", true);
     } finally {
       deleteSelectedTasksBtn.disabled = false;
@@ -428,6 +458,7 @@
         applyUserRowSessionStatus(userId, data.status);
         window.showToast(`Paused ${username}'s active session.`);
       } catch (err) {
+        if (isUnauthorized(err)) { redirectToAdminLogin(); return; }
         window.showToast(err.message || "Could not pause that session.", true);
       } finally {
         btn.disabled = false;
@@ -447,6 +478,7 @@
         applyUserRowSessionStatus(userId, null);
         window.showToast(`Finished ${username}'s active session.`);
       } catch (err) {
+        if (isUnauthorized(err)) { redirectToAdminLogin(); return; }
         window.showToast(err.message || "Could not finish that session.", true);
       } finally {
         btn.disabled = false;

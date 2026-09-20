@@ -10,7 +10,7 @@ from services import queries
 from services import live_cache
 
 
-def build_status_payload(user_id, current_ts, collab_since_ts):
+def build_status_payload(user_id, current_ts, collab_since_ts, *, claim_alert=True):
     """Return the dict shape that ``GET /api/status`` emits.
 
     ``auto_paused_alert`` is delivered exactly once via an atomic DB claim
@@ -20,13 +20,21 @@ def build_status_payload(user_id, current_ts, collab_since_ts):
     header is sent with the first chunk), which used to silently drop the
     alert whenever the auto-pause happened to occur inside the stream
     rather than during a plain REST request.
+
+    ``claim_alert=False`` skips the claim entirely and reports the alert as
+    not pending. The dashboard page render uses this: HTML renders are also
+    triggered by link-hover prefetches (common.js) and service-worker
+    navigation fetches, neither of which ever runs the page's JS, so a
+    claim made there would consume the one-shot alert without anyone
+    seeing it. The SSE stream's first tick (about a second after load)
+    claims and shows it instead.
     """
     active = queries.get_active_session(user_id)
 
     conn = db.get_db()
 
     auto_paused_alert = False
-    if active and active["auto_pause_pending_alert"]:
+    if claim_alert and active and active["auto_pause_pending_alert"]:
         cur = conn.execute(
             "UPDATE sessions SET auto_pause_pending_alert = 0 WHERE id = ? AND auto_pause_pending_alert = 1",
             (active["id"],),

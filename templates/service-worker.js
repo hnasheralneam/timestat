@@ -21,7 +21,14 @@ const CORE_ASSETS = [
   "/static/js/theme.js?v=" + ASSET_VERSION,
   "/static/manifest.json?v=" + ASSET_VERSION,
   "/static/logo.svg?v=" + ASSET_VERSION,
-  "/static/fonts/material-symbols-rounded.woff2?v=" + ASSET_VERSION,
+  // Unversioned to match the URL the stylesheet's @font-face resolves to
+  // (see the preload comment in base.html); a versioned entry here would
+  // never be hit by the real request. Deploy-time invalidation still works:
+  // the whole cache is keyed by CACHE_VERSION.
+  "/static/fonts/material-symbols-rounded.woff2",
+  // The dashboard (start_url) always loads Chart.js, so precaching it costs
+  // nothing extra and makes the first offline visit render charts too.
+  "/static/vendor/chart.umd.min.js?v=" + ASSET_VERSION,
 ];
 
 self.addEventListener("install", (event) => {

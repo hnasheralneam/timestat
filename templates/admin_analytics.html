@@ -30,7 +30,7 @@
       <span class="material-symbols-rounded" aria-hidden="true">timeline</span>
       Team Hours per Day (Last 30)
     </h2>
-    <canvas id="hoursPerDayChart" height="200" role="img" aria-label="Bar chart of team hours per day"></canvas>
+    <div class="chart-box"><canvas id="hoursPerDayChart" role="img" aria-label="Bar chart of team hours per day"></canvas></div>
     <p id="hoursPerDayEmpty" class="empty-state hidden mt-3">No completed sessions in this range.</p>
   </section>
 
@@ -39,7 +39,7 @@
       <span class="material-symbols-rounded" aria-hidden="true">groups</span>
       Active Users per Day (Last 14)
     </h2>
-    <canvas id="activeUsersChart" height="200" role="img" aria-label="Bar chart of active users per day"></canvas>
+    <div class="chart-box"><canvas id="activeUsersChart" role="img" aria-label="Bar chart of active users per day"></canvas></div>
     <p id="activeUsersEmpty" class="empty-state hidden mt-3">No completed sessions in this range.</p>
   </section>
 
@@ -48,7 +48,7 @@
       <span class="material-symbols-rounded" aria-hidden="true">schedule</span>
       Busiest Hours of Day (Last 30)
     </h2>
-    <canvas id="hourOfDayChart" height="200" role="img" aria-label="Bar chart of busiest hours of the day"></canvas>
+    <div class="chart-box"><canvas id="hourOfDayChart" role="img" aria-label="Bar chart of busiest hours of the day"></canvas></div>
     <p id="hourOfDayEmpty" class="empty-state hidden mt-3">No completed sessions in this range.</p>
   </section>
 
@@ -77,7 +77,7 @@
       <span class="material-symbols-rounded" aria-hidden="true">pie_chart</span>
       Team Category Mix (All Time)
     </h2>
-    <canvas id="categoriesAllChart" height="210" role="img" aria-label="Doughnut chart of team category mix all time"></canvas>
+    <div class="chart-box"><canvas id="categoriesAllChart" role="img" aria-label="Doughnut chart of team category mix all time"></canvas></div>
     <p id="categoriesAllEmpty" class="empty-state hidden mt-3">No team data yet.</p>
   </section>
 
@@ -86,7 +86,7 @@
       <span class="material-symbols-rounded" aria-hidden="true">pie_chart</span>
       Team Category Mix (Last 7 Days)
     </h2>
-    <canvas id="categoriesWeekChart" height="210" role="img" aria-label="Doughnut chart of team category mix last 7 days"></canvas>
+    <div class="chart-box"><canvas id="categoriesWeekChart" role="img" aria-label="Doughnut chart of team category mix last 7 days"></canvas></div>
     <p id="categoriesWeekEmpty" class="empty-state hidden mt-3">No team data this week.</p>
   </section>
 </div>
@@ -101,6 +101,7 @@
   let categoriesWeekChart = null;
   let analyticsRequestController = null;
   let analyticsRequestSequence = 0;
+  let lastAnalyticsData = null;
 
   const EMPTY_STATE_IDS = [
     "hoursPerDayEmpty", "activeUsersEmpty", "hourOfDayEmpty",
@@ -137,7 +138,7 @@
   function textColor() { return window.cssRgb("--gb-fg-rgb"); }
   function gridColor() { return window.cssRgb("--gb-bg2-rgb"); }
 
-  function barChart(ref, canvasId, labels, values, emptyId) {
+  function barChart(ref, canvasId, labels, values, emptyId, force = false) {
     const empty = document.getElementById(emptyId);
     if (!labels.length || !values.some((v) => v > 0)) {
       if (ref) ref.destroy();
@@ -164,11 +165,12 @@
           y: { beginAtZero: true, ticks: { color: textColor() }, grid: { color: gridColor() } }
         },
         plugins: { legend: { display: false } }
-      }
+      },
+      force
     });
   }
 
-  function pieChart(ref, canvasId, labels, values, emptyId, title) {
+  function pieChart(ref, canvasId, labels, values, emptyId, title, force = false) {
     const empty = document.getElementById(emptyId);
     if (!labels.length || !values.some((v) => v > 0)) {
       if (ref) ref.destroy();
@@ -180,7 +182,8 @@
     return window.renderOrUpdateChart(ref, ctx, {
       type: "doughnut",
       data: { labels, datasets: [{ data: values, backgroundColor: window.themeColors() }] },
-      options: { plugins: { legend: { position: "bottom", labels: { color: textColor() } }, title: { display: !!title, text: title || "", color: textColor() } } }
+      options: { plugins: { legend: { position: "bottom", labels: { color: textColor() } }, title: { display: !!title, text: title || "", color: textColor() } } },
+      force
     });
   }
 
@@ -211,6 +214,52 @@
     return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
   }
 
+  // Renders one /admin/api/analytics payload. `force` repaints unchanged
+  // data (theme/palette change: only the colors moved).
+  function renderAnalytics(data, force = false) {
+    lastAnalyticsData = data;
+    hoursPerDayChart = barChart(
+      hoursPerDayChart, "hoursPerDayChart",
+      (data.hours_per_day || []).map((d) => shortDate(d.date)),
+      (data.hours_per_day || []).map((d) => +(d.seconds / 3600).toFixed(2)),
+      "hoursPerDayEmpty", force
+    );
+
+    activeUsersChart = barChart(
+      activeUsersChart, "activeUsersChart",
+      (data.active_users_per_day || []).map((d) => shortDate(d.date)),
+      (data.active_users_per_day || []).map((d) => d.active_users),
+      "activeUsersEmpty", force
+    );
+
+    hourOfDayChart = barChart(
+      hourOfDayChart, "hourOfDayChart",
+      (data.hour_of_day || []).map((d) => `${String(d.hour).padStart(2, "0")}:00`),
+      (data.hour_of_day || []).map((d) => +(d.seconds / 3600).toFixed(2)),
+      "hourOfDayEmpty", force
+    );
+
+    renderTopUsers(data.top_users_week || []);
+
+    categoriesAllChart = pieChart(
+      categoriesAllChart, "categoriesAllChart",
+      (data.categories_all_time || []).map((x) => x.name),
+      (data.categories_all_time || []).map((x) => +(x.seconds / 3600).toFixed(2)),
+      "categoriesAllEmpty", "", force
+    );
+
+    categoriesWeekChart = pieChart(
+      categoriesWeekChart, "categoriesWeekChart",
+      (data.categories_week || []).map((x) => x.name),
+      (data.categories_week || []).map((x) => +(x.seconds / 3600).toFixed(2)),
+      "categoriesWeekEmpty", "", force
+    );
+  }
+
+  window.addEventListener("timestat:theme-changed", () => {
+    if (lastAnalyticsData) renderAnalytics(lastAnalyticsData, true);
+  });
+
   async function loadAnalytics() {
     const requestSequence = ++analyticsRequestSequence;
     if (analyticsRequestController) analyticsRequestController.abort();
@@ -229,51 +278,26 @@
     // overwrite fresher data.
     if (requestSequence !== analyticsRequestSequence) return;
     clearLoadError();
-
-    hoursPerDayChart = barChart(
-      hoursPerDayChart, "hoursPerDayChart",
-      (data.hours_per_day || []).map((d) => shortDate(d.date)),
-      (data.hours_per_day || []).map((d) => +(d.seconds / 3600).toFixed(2)),
-      "hoursPerDayEmpty"
-    );
-
-    activeUsersChart = barChart(
-      activeUsersChart, "activeUsersChart",
-      (data.active_users_per_day || []).map((d) => shortDate(d.date)),
-      (data.active_users_per_day || []).map((d) => d.active_users),
-      "activeUsersEmpty"
-    );
-
-    hourOfDayChart = barChart(
-      hourOfDayChart, "hourOfDayChart",
-      (data.hour_of_day || []).map((d) => `${String(d.hour).padStart(2, "0")}:00`),
-      (data.hour_of_day || []).map((d) => +(d.seconds / 3600).toFixed(2)),
-      "hourOfDayEmpty"
-    );
-
-    renderTopUsers(data.top_users_week || []);
-
-    categoriesAllChart = pieChart(
-      categoriesAllChart, "categoriesAllChart",
-      (data.categories_all_time || []).map((x) => x.name),
-      (data.categories_all_time || []).map((x) => +(x.seconds / 3600).toFixed(2)),
-      "categoriesAllEmpty", ""
-    );
-
-    categoriesWeekChart = pieChart(
-      categoriesWeekChart, "categoriesWeekChart",
-      (data.categories_week || []).map((x) => x.name),
-      (data.categories_week || []).map((x) => +(x.seconds / 3600).toFixed(2)),
-      "categoriesWeekEmpty", ""
-    );
+    renderAnalytics(data);
     analyticsRequestController = null;
   }
 
   // common.js is deferred (see base.html); wait for DOMContentLoaded so the
   // real ensureCharts is in place before the first charts paint.
+  // An expired admin session answers 401 here; sign-in is the only way
+  // forward, so go there instead of painting "Unauthorized" into every panel.
+  function handleLoadError(err) {
+    if (err.name === "AbortError") return true;
+    if ((err.message || "").includes("Unauthorized")) {
+      window.location.href = "/admin/login";
+      return true;
+    }
+    return false;
+  }
+
   document.addEventListener("DOMContentLoaded", () => {
     loadAnalytics().catch((err) => {
-      if (err.name === "AbortError") return;
+      if (handleLoadError(err)) return;
       const btn = document.getElementById("refreshAnalyticsBtn");
       btn.classList.add("flash-error");
       btn.setAttribute("data-tooltip", err.message || "Could not load analytics");
@@ -282,7 +306,7 @@
   });
   document.getElementById("refreshAnalyticsBtn").addEventListener("click", () => {
     loadAnalytics().catch((err) => {
-      if (err.name === "AbortError") return;
+      if (handleLoadError(err)) return;
       showLoadError(err.message || "Could not load analytics.");
     });
   });

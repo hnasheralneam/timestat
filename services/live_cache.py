@@ -26,6 +26,9 @@ _MONITOR_INODE = None
 _LAST_DATA_VERSION = None
 _LAST_CHECK = 0.0
 _REVISION = 0
+# Default minimum spacing between PRAGMA data_version checks. Overridable per
+# app via config["LIVE_CACHE_CHECK_INTERVAL"] (tests set it to 0 so a write
+# made behind the app's back is visible on the very next read).
 _CHECK_INTERVAL = 0.5
 
 _collaboration_revision = None
@@ -66,6 +69,12 @@ def _clear_snapshots() -> None:
     global _digest_revision, _digest_base, _digest_epoch
     global _alltime_leaderboard_revision, _alltime_leaderboard_epoch
     global _alltime_team_categories_revision, _alltime_team_categories_epoch
+    # The *_rows globals are declared too: without this the assignments
+    # below silently bound function-locals instead, so the (potentially
+    # large) row lists stayed referenced after an invalidate. Harmless for
+    # correctness - the revision/epoch reset forces a recompute either way -
+    # but it kept dead data alive and read as if it cleared it.
+    global _alltime_leaderboard_rows, _alltime_team_categories_rows
     _collaboration_revision = None
     _collaboration_snapshot = None
     _digest_revision = None
@@ -77,6 +86,20 @@ def _clear_snapshots() -> None:
     _alltime_team_categories_revision = None
     _alltime_team_categories_rows = None
     _user_alltime_revisions.clear()
+
+
+def reset() -> None:
+    """Forget everything: snapshots, the monitor connection and its
+    baseline. Called from create_app() so a freshly built app (each Gunicorn
+    worker, or each test case) never starts from another app's cached rows
+    or from a monitor bound to a different database file."""
+    global _LAST_DATA_VERSION, _LAST_CHECK, _REVISION
+    with _LOCK:
+        _close_monitor()
+        _LAST_DATA_VERSION = None
+        _LAST_CHECK = 0.0
+        _REVISION += 1
+        _clear_snapshots()
 
 
 def invalidate() -> None:
@@ -122,7 +145,8 @@ def _revision_locked() -> int:
     global _LAST_CHECK, _LAST_DATA_VERSION, _REVISION
 
     now = time.monotonic()
-    if now - _LAST_CHECK < _CHECK_INTERVAL:
+    interval = current_app.config.get("LIVE_CACHE_CHECK_INTERVAL", _CHECK_INTERVAL)
+    if now - _LAST_CHECK < interval:
         return _REVISION
 
     monitor = _ensure_monitor_locked(current_app.config["DATABASE"])

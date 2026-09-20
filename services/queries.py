@@ -221,7 +221,9 @@ def category_rows_for_user(
     conn = db.get_db()
     categories = [
         row["name"]
-        for row in conn.execute("SELECT name FROM categories ORDER BY name").fetchall()
+        for row in conn.execute(
+            "SELECT name FROM categories ORDER BY name COLLATE NOCASE"
+        ).fetchall()
     ]
     totals = {name: 0 for name in categories}
 

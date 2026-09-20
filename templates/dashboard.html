@@ -3,7 +3,7 @@
 {% block header_title %}TimeStat Dashboard{% endblock %}
 {% block header_subtitle %}Welcome, <span id="headerUsername">{{ user.username }}</span>.{% endblock %}
 {% block content %}
-<div id="collabNotifications" class="fixed right-4 bottom-4 z-40 space-y-2 max-w-sm pointer-events-none"></div>
+<div id="collabNotifications" class="fixed right-4 app-bottom-float z-40 space-y-2 max-w-sm pointer-events-none"></div>
 
 <div class="dashboard-grid grid lg:grid-cols-3 gap-4">
   <section class="tracker-section lg:col-span-2 neu-surface p-5">
@@ -112,35 +112,53 @@
     </div>
   </section>
 
-  <section class="personal-section neu-surface p-5">
+  {#
+    On mobile the three weekly charts below sit behind this toggle, collapsed
+    by default - they were ~50rem of scroll for the least-used content on the
+    page, and they pulled a ~200KB Chart.js download on every load.
+
+    Deliberately a sibling button rather than a <details> wrapper: the three
+    sections have to stay *direct children* of .dashboard-grid to be grid
+    cells at desktop widths, and a <details> keeps an implicit content box
+    (::details-content) around its children that `display: contents` does not
+    dissolve - which collapsed all three charts into the first column.
+    The button is display:none above 768px, so desktop markup is unchanged.
+  #}
+  <button id="insightsToggle" class="insights-summary" type="button" aria-expanded="false" aria-controls="insightsPersonal insightsTeam insightsTrend">
+    <span class="material-symbols-rounded" aria-hidden="true">insights</span>
+    Insights
+    <span class="insights-chevron" aria-hidden="true"></span>
+  </button>
+
+  <section id="insightsPersonal" class="personal-section insights-panel neu-surface p-5">
     <h2 class="font-semibold text-lg mb-1 text-gb-fg flex items-center gap-2">
       <span class="material-symbols-rounded" aria-hidden="true">pie_chart</span>
       Personal Breakdown
     </h2>
     <p class="text-xs text-gb-fg/70 mb-2">Time share by category across the last 7 days.</p>
-    <canvas id="myWeekChart" height="210" role="img" aria-label="Doughnut chart of your tracked hours by category over the last 7 days"></canvas>
+    <div class="chart-box"><canvas id="myWeekChart" role="img" aria-label="Doughnut chart of your tracked hours by category over the last 7 days"></canvas></div>
     <p id="myWeekTotalHours" class="mt-1 text-xs text-gb-fg/70 text-center hidden"></p>
     <p id="myWeekEmpty" class="empty-state hidden mt-3">No personal session data in the last 7 days.</p>
   </section>
 
-  <section class="team-section neu-surface p-5">
+  <section id="insightsTeam" class="team-section insights-panel neu-surface p-5">
     <h2 class="font-semibold text-lg mb-1 text-gb-fg flex items-center gap-2">
       <span class="material-symbols-rounded" aria-hidden="true">groups</span>
       Team Breakdown
     </h2>
     <p class="text-xs text-gb-fg/70 mb-2">Combined team time by category across the last 7 days.</p>
-    <canvas id="teamWeekChart" height="210" role="img" aria-label="Doughnut chart of team tracked hours by category over the last 7 days"></canvas>
+    <div class="chart-box"><canvas id="teamWeekChart" role="img" aria-label="Doughnut chart of team tracked hours by category over the last 7 days"></canvas></div>
     <p id="teamWeekTotalHours" class="mt-1 text-xs text-gb-fg/70 text-center hidden"></p>
     <p id="teamWeekEmpty" class="empty-state hidden mt-3">No team session data in the last 7 days.</p>
   </section>
 
-  <section class="trend-section neu-surface p-5">
+  <section id="insightsTrend" class="trend-section insights-panel neu-surface p-5">
     <h2 class="font-semibold text-lg mb-1 text-gb-fg flex items-center gap-2">
       <span class="material-symbols-rounded" aria-hidden="true">show_chart</span>
       Daily Trend
     </h2>
     <p class="text-xs text-gb-fg/70 mb-2">Your tracked hours per day over the last 14 days.</p>
-    <canvas id="dailyTrendChart" height="210" role="img" aria-label="Line chart of your tracked hours per day over the last 14 days"></canvas>
+    <div class="chart-box"><canvas id="dailyTrendChart" role="img" aria-label="Line chart of your tracked hours per day over the last 14 days"></canvas></div>
     <p id="dailyTrendEmpty" class="empty-state hidden mt-3">No personal session data in the last 14 days.</p>
   </section>
 
@@ -227,7 +245,13 @@
   const initialData = {{ initial_data|tojson }};
   const state = {
     current: null,
+    // Elapsed seconds as of timerAnchorMs. While the session is running the
+    // display is timerBase + wall-clock time since the anchor (see
+    // currentElapsed), not a count of interval ticks: browsers throttle
+    // background-tab timers, so tick-counting fell behind and only caught
+    // up once a resync fetch completed after the tab came back.
     timerBase: 0,
+    timerAnchorMs: 0,
     recentSessions: [],
     recentLimit: 10,
     recentOffset: 0,
@@ -251,6 +275,16 @@
 
   function formatShortDate(ts) {
     return new Date(ts * 1000).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+  }
+
+  function currentElapsed() {
+    if (!state.current || state.current.status !== "running") return state.timerBase;
+    return state.timerBase + Math.max(0, Math.floor((Date.now() - state.timerAnchorMs) / 1000));
+  }
+
+  function setTimer(seconds) {
+    state.timerBase = Math.max(0, Math.floor(seconds || 0));
+    state.timerAnchorMs = Date.now();
   }
 
   function setMessage(text, isError = false) {
@@ -444,7 +478,7 @@
   } = {}) {
     if (state.actionBusy) return null;
     const snapshot = state.current ? { ...state.current } : null;
-    const timerSnapshot = state.timerBase;
+    const timerSnapshot = { base: state.timerBase, anchorMs: state.timerAnchorMs };
     state.actionBusy = true;
     if (optimistic) optimistic();
     try {
@@ -469,7 +503,8 @@
         return null;
       }
       state.current = snapshot;
-      state.timerBase = timerSnapshot;
+      state.timerBase = timerSnapshot.base;
+      state.timerAnchorMs = timerSnapshot.anchorMs;
       renderSession();
       setMessage(err.message, true);
       flashError();
@@ -484,7 +519,7 @@
     if (!state.current) return;
     await performSessionAction("/api/session/adjust", { seconds, session_id: state.current.id }, {
       optimistic: () => {
-        state.timerBase = Math.max(0, state.timerBase - seconds);
+        setTimer(currentElapsed() - seconds);
         renderSession();
       },
       message: `Removed ${label} from the current session.`
@@ -503,6 +538,7 @@
       label.title = "No active session";
       timer.textContent = "00:00:00";
       updateButtons();
+      syncDock();
       return;
     }
 
@@ -512,8 +548,20 @@
     label.title = state.current.note
       ? `${state.current.category_name} — ${state.current.note}`
       : state.current.category_name;
-    timer.textContent = formatDuration(state.timerBase);
+    timer.textContent = formatDuration(currentElapsed());
     updateButtons();
+    syncDock();
+  }
+
+  // The dock lives in base.html and is wired up by common.js at
+  // DOMContentLoaded, which can land after the first renderSession().
+  function syncDock() {
+    // Hand over this page's own elapsed total: renderSession runs once a
+    // second, and state.current.elapsed_seconds only moves when the server
+    // answers, so the dock would otherwise keep resetting to that value.
+    if (window.TimestatDock) {
+      window.TimestatDock.set(state.current, state.current ? currentElapsed() : undefined);
+    }
   }
 
   let statusRequestController = null;
@@ -586,11 +634,11 @@
       // session (or an admin fixes it), leaving this device displaying more
       // elapsed time than the server's truth indefinitely.
       const serverElapsed = data.current_session.elapsed_seconds;
-      if (Math.abs(serverElapsed - state.timerBase) > TIMER_RESYNC_TOLERANCE_SECONDS) {
-        state.timerBase = serverElapsed;
+      if (Math.abs(serverElapsed - currentElapsed()) > TIMER_RESYNC_TOLERANCE_SECONDS) {
+        setTimer(serverElapsed);
       }
     } else {
-      state.timerBase = state.current ? state.current.elapsed_seconds : 0;
+      setTimer(state.current ? state.current.elapsed_seconds : 0);
     }
     if (data.server_ts != null) state.lastStatusServerTs = data.server_ts;
     state.collabSinceTs = data.server_ts || state.collabSinceTs;
@@ -710,7 +758,10 @@
         }]
       },
       options: {
-        plugins: { legend: { position: "bottom", labels: { color: textColor } }, title: { display: true, text: title, color: textColor } }
+        // The in-canvas title repeats the section's own <h2> and subtitle. On a
+        // phone it costs height a doughnut can't spare once the bottom legend
+        // wraps, so it's desktop-only.
+        plugins: { legend: { position: "bottom", labels: { color: textColor } }, title: { display: !window.isMobileViewport(), text: title, color: textColor } }
       },
       force
     });
@@ -838,7 +889,7 @@
         // in-progress session's elapsed time is missing from today's bucket
         // (the last entry, since the endpoint always includes today). Fold it
         // in so today's point matches what the other dashboard charts show.
-        days[days.length - 1].seconds += state.timerBase;
+        days[days.length - 1].seconds += currentElapsed();
       }
       renderDailyTrend(days);
     } catch (err) {
@@ -948,16 +999,17 @@
       const safeNote = escapeHtml(s.note || "");
       const safeStart = escapeHtml(tsToLocal(s.start_ts));
       const safeEnd = escapeHtml(tsToLocal(s.end_ts));
+      const safeEndCompact = escapeHtml(formatCompactDateTime(s.end_ts));
       const safeDuration = escapeHtml(formatDuration(s.duration_seconds));
       const safeNoteTitle = safeNote || "No note";
       const tr = document.createElement("tr");
       tr.className = "border-t border-gb-bg2";
       tr.innerHTML = `
-        <td class="py-2" data-label="Category">${safeCategoryName}</td>
-        <td class="py-2" data-label="Duration" data-tooltip="Started ${safeStart}">${safeDuration}</td>
-        <td class="py-2" data-label="Note" data-tooltip="${safeNoteTitle}">${safeNote || "-"}</td>
-        <td class="py-2" data-label="Ended">${safeEnd}</td>
-        <td class="py-2" data-label="Actions">
+        <td class="py-2 hist-cat" data-label="Category">${safeCategoryName}</td>
+        <td class="py-2 hist-dur" data-label="Duration" data-tooltip="Started ${safeStart}">${safeDuration}</td>
+        <td class="py-2 hist-note" data-label="Note" data-tooltip="${safeNoteTitle}">${safeNote || "-"}</td>
+        <td class="py-2 hist-when" data-label="Ended" data-tooltip="Ended ${safeEnd}">${safeEndCompact}</td>
+        <td class="py-2 hist-actions" data-label="Actions">
           <button class="neu-btn neu-btn-sm border border-gb-bg2 bg-gb-bg1 text-gb-fg inline-flex items-center gap-1 text-xs px-2 py-1 mr-1" data-edit-session-id="${s.id}" type="button" data-tooltip="Edit category and note">
             <span class="material-symbols-rounded" aria-hidden="true">edit</span>
           </button>
@@ -1127,20 +1179,6 @@
   const sessionNoteInput = document.getElementById("sessionNote");
   let selectedCategory = "";
 
-  function updateResponsivePlaceholders() {
-    const isMobile = window.matchMedia("(max-width: 767px)").matches;
-    [categoryInput, sessionNoteInput].forEach((input) => {
-      input.placeholder = isMobile
-        ? input.dataset.mobilePlaceholder
-        : input.dataset.desktopPlaceholder || input.getAttribute("placeholder");
-    });
-  }
-
-  categoryInput.dataset.desktopPlaceholder = categoryInput.getAttribute("placeholder");
-  sessionNoteInput.dataset.desktopPlaceholder = sessionNoteInput.getAttribute("placeholder");
-  updateResponsivePlaceholders();
-  window.matchMedia("(max-width: 767px)").addEventListener("change", updateResponsivePlaceholders);
-
   function updateClearBtn() {
     clearActivityBtn.classList.toggle("hidden", !categoryInput.value);
   }
@@ -1239,7 +1277,7 @@
           elapsed_seconds: 0,
           start_ts: Math.floor(Date.now() / 1000)
         };
-        state.timerBase = 0;
+        setTimer(0);
         renderSession();
       },
       message: "Session started."
@@ -1250,7 +1288,11 @@
     if (!state.current) return;
     await performSessionAction("/api/session/pause", { session_id: state.current.id }, {
       optimistic: () => {
+        // Freeze the running total before flipping status (currentElapsed
+        // stops adding wall-clock time once status is not "running").
+        const elapsed = currentElapsed();
         if (state.current) state.current = { ...state.current, status: "paused" };
+        setTimer(elapsed);
         renderSession();
       },
       message: "Session paused."
@@ -1262,6 +1304,7 @@
     await performSessionAction("/api/session/resume", { session_id: state.current.id }, {
       optimistic: () => {
         if (state.current) state.current = { ...state.current, status: "running" };
+        setTimer(state.timerBase);
         renderSession();
       },
       message: "Session resumed."
@@ -1273,7 +1316,7 @@
     await performSessionAction("/api/session/finish", { session_id: state.current.id }, {
       optimistic: () => {
         state.current = null;
-        state.timerBase = 0;
+        setTimer(0);
         renderSession();
       },
       message: "Session finished.",
@@ -1287,7 +1330,7 @@
     await performSessionAction("/api/session/cancel", { session_id: state.current.id }, {
       optimistic: () => {
         state.current = null;
-        state.timerBase = 0;
+        setTimer(0);
         renderSession();
       },
       message: "Session canceled."
@@ -1302,10 +1345,11 @@
     await adjustSession(1800, "30 minutes");
   });
 
+  // Repaints only; the value is derived from wall-clock time, so a throttled
+  // or backgrounded tab shows the right elapsed the instant it is visible.
   setInterval(() => {
-    if (document.hidden || !state.current || state.current.status !== "running") return;
-    state.timerBase += 1;
-    document.getElementById("timerDisplay").textContent = formatDuration(state.timerBase);
+    if (!state.current || state.current.status !== "running") return;
+    document.getElementById("timerDisplay").textContent = formatDuration(currentElapsed());
   }, 1000);
   document.addEventListener("visibilitychange", () => {
     if (!document.hidden) loadStatus().catch(() => {});
@@ -1434,7 +1478,7 @@
     window.ensureCharts().catch(() => {}).then(() => {
       applyStats(initialData.digest.stats);
       const days = initialDays.map((day) => ({ ...day }));
-      if (state.current && days.length) days[days.length - 1].seconds += state.timerBase;
+      if (state.current && days.length) days[days.length - 1].seconds += currentElapsed();
       renderDailyTrend(days);
     });
   }
@@ -1492,7 +1536,50 @@
   // common.js is deferred (see base.html); DOMContentLoaded is guaranteed to
   // fire after it executes, so the real ensureCharts/renderOrUpdateChart are
   // in place by the time bootstrap seeds the initial charts.
+  // Mobile keeps the three weekly charts behind the Insights disclosure, and
+  // nothing should fetch the ~200KB Chart.js bundle until it's opened. Wrapping
+  // ensureCharts is enough to cover all four call sites: while deferred it
+  // resolves without loading anything, and every caller is already written to
+  // work when the bundle is absent (totals and empty states still populate).
+  function initInsightsDeferral() {
+    const toggle = document.getElementById("insightsToggle");
+    const grid = document.querySelector(".dashboard-grid");
+    if (!toggle || !grid) return;
+    const realEnsureCharts = window.ensureCharts;
+    let unlocked = !window.isMobileViewport();
+
+    window.ensureCharts = function () {
+      if (!unlocked) return Promise.resolve(null);
+      return realEnsureCharts.apply(window, arguments);
+    };
+
+    function unlock() {
+      if (unlocked) return;
+      unlocked = true;
+      // Draw from whatever data the page already holds - the same replay the
+      // theme-change handler does - rather than re-fetching it.
+      window.ensureCharts().catch(() => {}).then(() => {
+        if (lastStatsData) applyStats(lastStatsData, true);
+        if (lastTrendDays) renderDailyTrend(lastTrendDays, true);
+      });
+    }
+
+    toggle.addEventListener("click", () => {
+      const open = !grid.classList.contains("insights-open");
+      grid.classList.toggle("insights-open", open);
+      toggle.setAttribute("aria-expanded", String(open));
+      if (open) unlock();
+    });
+
+    // Rotating up to a tablet/desktop width restores the plain grid, where
+    // the three sections are always visible and so must always be drawn.
+    window.matchMedia(window.MOBILE_QUERY).addEventListener("change", (event) => {
+      if (!event.matches) unlock();
+    });
+  }
+
   document.addEventListener("DOMContentLoaded", () => {
+    initInsightsDeferral();
     bootstrap().catch((err) => {
       // A broken optional widget must not leave the session controls unusable.
       console.error("Dashboard bootstrap failed", err);

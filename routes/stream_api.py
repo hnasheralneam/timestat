@@ -45,8 +45,8 @@ from services import live_cache
 # Timing (seconds / ticks)
 STATUS_INTERVAL = 1.0
 SLEEP_STEP = 0.5
-HEARTBEAT_EVERY = 8    # heartbeat comment every 8 status ticks -> ~16s
-MAX_TICKS = 150        # ~5min, then close so the client reconnects (re-auths)
+HEARTBEAT_EVERY = 8    # heartbeat comment every 8 status ticks -> ~8s
+MAX_TICKS = 300        # ~5min, then close so the client reconnects (re-auths)
 STATUS_RESYNC_EVERY = 60  # refresh the client-side timer about every 60s
 # Re-push the digest about this often even when no DB write bumped the
 # revision. Leaderboard "seconds" include the live elapsed of running

@@ -1,4 +1,4 @@
-*,:after,:before{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x: ;--tw-pan-y: ;--tw-pinch-zoom: ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position: ;--tw-gradient-via-position: ;--tw-gradient-to-position: ;--tw-ordinal: ;--tw-slashed-zero: ;--tw-numeric-figure: ;--tw-numeric-spacing: ;--tw-numeric-fraction: ;--tw-ring-inset: ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgba(59,130,246,.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur: ;--tw-brightness: ;--tw-contrast: ;--tw-grayscale: ;--tw-hue-rotate: ;--tw-invert: ;--tw-saturate: ;--tw-sepia: ;--tw-drop-shadow: ;--tw-backdrop-blur: ;--tw-backdrop-brightness: ;--tw-backdrop-contrast: ;--tw-backdrop-grayscale: ;--tw-backdrop-hue-rotate: ;--tw-backdrop-invert: ;--tw-backdrop-opacity: ;--tw-backdrop-saturate: ;--tw-backdrop-sepia: ;--tw-contain-size: ;--tw-contain-layout: ;--tw-contain-paint: ;--tw-contain-style: }::backdrop{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x: ;--tw-pan-y: ;--tw-pinch-zoom: ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position: ;--tw-gradient-via-position: ;--tw-gradient-to-position: ;--tw-ordinal: ;--tw-slashed-zero: ;--tw-numeric-figure: ;--tw-numeric-spacing: ;--tw-numeric-fraction: ;--tw-ring-inset: ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgba(59,130,246,.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur: ;--tw-brightness: ;--tw-contrast: ;--tw-grayscale: ;--tw-hue-rotate: ;--tw-invert: ;--tw-saturate: ;--tw-sepia: ;--tw-drop-shadow: ;--tw-backdrop-blur: ;--tw-backdrop-brightness: ;--tw-backdrop-contrast: ;--tw-backdrop-grayscale: ;--tw-backdrop-hue-rotate: ;--tw-backdrop-invert: ;--tw-backdrop-opacity: ;--tw-backdrop-saturate: ;--tw-backdrop-sepia: ;--tw-contain-size: ;--tw-contain-layout: ;--tw-contain-paint: ;--tw-contain-style: }/*! tailwindcss v3.4.19 | MIT License | https://tailwindcss.com*/*,:after,:before{box-sizing:border-box;border:0 solid #e5e7eb}:after,:before{--tw-content:""}:host,html{line-height:1.5;-webkit-text-size-adjust:100%;-moz-tab-size:4;-o-tab-size:4;tab-size:4;font-family:ui-sans-serif,system-ui,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol,Noto Color Emoji;font-feature-settings:normal;font-variation-settings:normal;-webkit-tap-highlight-color:transparent}body{margin:0;line-height:inherit}hr{height:0;color:inherit;border-top-width:1px}abbr:where([title]){-webkit-text-decoration:underline dotted;text-decoration:underline dotted}h1,h2,h3,h4,h5,h6{font-size:inherit;font-weight:inherit}a{color:inherit;text-decoration:inherit}b,strong{font-weight:bolder}code,kbd,pre,samp{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,Liberation Mono,Courier New,monospace;font-feature-settings:normal;font-variation-settings:normal;font-size:1em}small{font-size:80%}sub,sup{font-size:75%;line-height:0;position:relative;vertical-align:baseline}sub{bottom:-.25em}sup{top:-.5em}table{text-indent:0;border-color:inherit;border-collapse:collapse}button,input,optgroup,select,textarea{font-family:inherit;font-feature-settings:inherit;font-variation-settings:inherit;font-size:100%;font-weight:inherit;line-height:inherit;letter-spacing:inherit;color:inherit;margin:0;padding:0}button,select{text-transform:none}button,input:where([type=button]),input:where([type=reset]),input:where([type=submit]){-webkit-appearance:button;background-color:transparent;background-image:none}:-moz-focusring{outline:auto}:-moz-ui-invalid{box-shadow:none}progress{vertical-align:baseline}::-webkit-inner-spin-button,::-webkit-outer-spin-button{height:auto}[type=search]{-webkit-appearance:textfield;outline-offset:-2px}::-webkit-search-decoration{-webkit-appearance:none}::-webkit-file-upload-button{-webkit-appearance:button;font:inherit}summary{display:list-item}blockquote,dd,dl,figure,h1,h2,h3,h4,h5,h6,hr,p,pre{margin:0}fieldset{margin:0}fieldset,legend{padding:0}menu,ol,ul{list-style:none;margin:0;padding:0}dialog{padding:0}textarea{resize:vertical}input::-moz-placeholder,textarea::-moz-placeholder{opacity:1;color:#9ca3af}input::placeholder,textarea::placeholder{opacity:1;color:#9ca3af}[role=button],button{cursor:pointer}:disabled{cursor:default}audio,canvas,embed,iframe,img,object,svg,video{display:block;vertical-align:middle}img,video{max-width:100%;height:auto}[hidden]:where(:not([hidden=until-found])){display:none}.pointer-events-none{pointer-events:none}.pointer-events-auto{pointer-events:auto}.visible{visibility:visible}.static{position:static}.fixed{position:fixed}.absolute{position:absolute}.relative{position:relative}.inset-0{inset:0}.inset-y-0{top:0;bottom:0}.bottom-4{bottom:1rem}.right-2{right:.5rem}.right-3{right:.75rem}.right-4{right:1rem}.top-3{top:.75rem}.z-10{z-index:10}.z-40{z-index:40}.z-50{z-index:50}.z-\[60\]{z-index:60}.mx-2{margin-left:.5rem;margin-right:.5rem}.mx-auto{margin-left:auto;margin-right:auto}.mb-1{margin-bottom:.25rem}.mb-2{margin-bottom:.5rem}.mb-3{margin-bottom:.75rem}.mb-4{margin-bottom:1rem}.mb-5{margin-bottom:1.25rem}.mb-6{margin-bottom:1.5rem}.ml-1{margin-left:.25rem}.ml-8{margin-left:2rem}.mr-1{margin-right:.25rem}.mr-2{margin-right:.5rem}.mt-1{margin-top:.25rem}.mt-10{margin-top:2.5rem}.mt-12{margin-top:3rem}.mt-2{margin-top:.5rem}.mt-3{margin-top:.75rem}.mt-4{margin-top:1rem}.mt-5{margin-top:1.25rem}.block{display:block}.flex{display:flex}.inline-flex{display:inline-flex}.table{display:table}.grid{display:grid}.hidden{display:none}.h-3{height:.75rem}.h-4{height:1rem}.h-9{height:2.25rem}.max-h-72{max-height:18rem}.max-h-80{max-height:20rem}.max-h-96{max-height:24rem}.max-h-\[60vh\]{max-height:60vh}.min-h-\[calc\(100vh-5\.5rem\)\]{min-height:calc(100vh - 5.5rem)}.min-h-screen{min-height:100vh}.w-12{width:3rem}.w-3{width:.75rem}.w-4{width:1rem}.w-full{width:100%}.min-w-0{min-width:0}.min-w-48{min-width:12rem}.min-w-52{min-width:13rem}.max-w-5xl{max-width:64rem}.max-w-6xl{max-width:72rem}.max-w-lg{max-width:32rem}.max-w-md{max-width:28rem}.max-w-sm{max-width:24rem}.max-w-xs{max-width:20rem}.flex-1{flex:1 1 0%}.transform{transform:translate(var(--tw-translate-x),var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.cursor-pointer{cursor:pointer}.select-none{-webkit-user-select:none;-moz-user-select:none;user-select:none}.flex-col{flex-direction:column}.flex-wrap{flex-wrap:wrap}.items-start{align-items:flex-start}.items-end{align-items:flex-end}.items-center{align-items:center}.justify-end{justify-content:flex-end}.justify-center{justify-content:center}.justify-between{justify-content:space-between}.gap-1{gap:.25rem}.gap-1\.5{gap:.375rem}.gap-2{gap:.5rem}.gap-3{gap:.75rem}.gap-4{gap:1rem}.gap-x-2{-moz-column-gap:.5rem;column-gap:.5rem}.gap-y-1{row-gap:.25rem}.-space-x-1>:not([hidden])~:not([hidden]){--tw-space-x-reverse:0;margin-right:calc(-.25rem*var(--tw-space-x-reverse));margin-left:calc(-.25rem*(1 - var(--tw-space-x-reverse)))}.space-y-2>:not([hidden])~:not([hidden]){--tw-space-y-reverse:0;margin-top:calc(.5rem*(1 - var(--tw-space-y-reverse)));margin-bottom:calc(.5rem*var(--tw-space-y-reverse))}.space-y-4>:not([hidden])~:not([hidden]){--tw-space-y-reverse:0;margin-top:calc(1rem*(1 - var(--tw-space-y-reverse)));margin-bottom:calc(1rem*var(--tw-space-y-reverse))}.overflow-auto{overflow:auto}.overflow-x-auto{overflow-x:auto}.rounded-full{border-radius:9999px}.rounded-lg{border-radius:.5rem}.rounded-sm{border-radius:.125rem}.border{border-width:1px}.border-t{border-top-width:1px}.border-gb-aqua\/80{border-color:rgb(var(--gb-aqua-rgb)/.8)}.border-gb-bg0{--tw-border-opacity:1;border-color:rgb(var(--gb-bg0-rgb)/var(--tw-border-opacity,1))}.border-gb-bg2{--tw-border-opacity:1;border-color:rgb(var(--gb-bg2-rgb)/var(--tw-border-opacity,1))}.border-gb-blue\/80{border-color:rgb(var(--gb-blue-rgb)/.8)}.border-gb-green\/40{border-color:rgb(var(--gb-green-rgb)/.4)}.border-gb-green\/80{border-color:rgb(var(--gb-green-rgb)/.8)}.border-gb-purple\/80{border-color:rgb(var(--gb-purple-rgb)/.8)}.border-gb-red\/50{border-color:rgb(var(--gb-red-rgb)/.5)}.border-gb-red\/80{border-color:rgb(var(--gb-red-rgb)/.8)}.border-gb-yellow\/80{border-color:rgb(var(--gb-yellow-rgb)/.8)}.bg-black\/45{background-color:rgba(0,0,0,.45)}.bg-gb-aqua{--tw-bg-opacity:1;background-color:rgb(var(--gb-aqua-rgb)/var(--tw-bg-opacity,1))}.bg-gb-bg0\/60{background-color:rgb(var(--gb-bg0-rgb)/.6)}.bg-gb-bg1{--tw-bg-opacity:1;background-color:rgb(var(--gb-bg1-rgb)/var(--tw-bg-opacity,1))}.bg-gb-blue{--tw-bg-opacity:1;background-color:rgb(var(--gb-blue-rgb)/var(--tw-bg-opacity,1))}.bg-gb-green{--tw-bg-opacity:1;background-color:rgb(var(--gb-green-rgb)/var(--tw-bg-opacity,1))}.bg-gb-purple{--tw-bg-opacity:1;background-color:rgb(var(--gb-purple-rgb)/var(--tw-bg-opacity,1))}.bg-gb-red{--tw-bg-opacity:1;background-color:rgb(var(--gb-red-rgb)/var(--tw-bg-opacity,1))}.bg-gb-yellow{--tw-bg-opacity:1;background-color:rgb(var(--gb-yellow-rgb)/var(--tw-bg-opacity,1))}.p-2{padding:.5rem}.p-4{padding:1rem}.p-5{padding:1.25rem}.p-6{padding:1.5rem}.px-2{padding-left:.5rem;padding-right:.5rem}.px-3{padding-left:.75rem;padding-right:.75rem}.px-4{padding-left:1rem;padding-right:1rem}.px-6{padding-left:1.5rem;padding-right:1.5rem}.py-1{padding-top:.25rem;padding-bottom:.25rem}.py-2{padding-top:.5rem;padding-bottom:.5rem}.py-3{padding-top:.75rem;padding-bottom:.75rem}.py-6{padding-top:1.5rem;padding-bottom:1.5rem}.pr-9{padding-right:2.25rem}.pt-2{padding-top:.5rem}.text-left{text-align:left}.text-center{text-align:center}.text-right{text-align:right}.font-mono{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,Liberation Mono,Courier New,monospace}.text-2xl{font-size:1.5rem;line-height:2rem}.text-4xl{font-size:2.25rem;line-height:2.5rem}.text-\[10px\]{font-size:10px}.text-base{font-size:1rem;line-height:1.5rem}.text-lg{font-size:1.125rem;line-height:1.75rem}.text-sm{font-size:.875rem;line-height:1.25rem}.text-xs{font-size:.75rem;line-height:1rem}.font-bold{font-weight:700}.font-medium{font-weight:500}.font-semibold{font-weight:600}.uppercase{text-transform:uppercase}.leading-4{line-height:1rem}.leading-none{line-height:1}.leading-relaxed{line-height:1.625}.tracking-wide{letter-spacing:.025em}.tracking-widest{letter-spacing:.1em}.text-gb-bg0{--tw-text-opacity:1;color:rgb(var(--gb-bg0-rgb)/var(--tw-text-opacity,1))}.text-gb-blue{--tw-text-opacity:1;color:rgb(var(--gb-blue-rgb)/var(--tw-text-opacity,1))}.text-gb-fg{--tw-text-opacity:1;color:rgb(var(--gb-fg-rgb)/var(--tw-text-opacity,1))}.text-gb-fg\/50{color:rgb(var(--gb-fg-rgb)/.5)}.text-gb-fg\/60{color:rgb(var(--gb-fg-rgb)/.6)}.text-gb-fg\/70{color:rgb(var(--gb-fg-rgb)/.7)}.text-gb-fg\/75{color:rgb(var(--gb-fg-rgb)/.75)}.text-gb-fg\/80{color:rgb(var(--gb-fg-rgb)/.8)}.text-gb-fg\/85{color:rgb(var(--gb-fg-rgb)/.85)}.text-gb-fg\/90{color:rgb(var(--gb-fg-rgb)/.9)}.text-gb-green{--tw-text-opacity:1;color:rgb(var(--gb-green-rgb)/var(--tw-text-opacity,1))}.text-gb-purple{--tw-text-opacity:1;color:rgb(var(--gb-purple-rgb)/var(--tw-text-opacity,1))}.text-gb-red{--tw-text-opacity:1;color:rgb(var(--gb-red-rgb)/var(--tw-text-opacity,1))}.underline{text-decoration-line:underline}.decoration-dotted{text-decoration-style:dotted}.underline-offset-2{text-underline-offset:2px}.accent-\[rgb\(var\(--gb-aqua-rgb\)\)\]{accent-color:rgb(var(--gb-aqua-rgb))}.shadow{--tw-shadow:0 1px 3px 0 rgba(0,0,0,.1),0 1px 2px -1px rgba(0,0,0,.1);--tw-shadow-colored:0 1px 3px 0 var(--tw-shadow-color),0 1px 2px -1px var(--tw-shadow-color)}.shadow,.shadow-lg{box-shadow:var(--tw-ring-offset-shadow,0 0 #0000),var(--tw-ring-shadow,0 0 #0000),var(--tw-shadow)}.shadow-lg{--tw-shadow:0 10px 15px -3px rgba(0,0,0,.1),0 4px 6px -4px rgba(0,0,0,.1);--tw-shadow-colored:0 10px 15px -3px var(--tw-shadow-color),0 4px 6px -4px var(--tw-shadow-color)}.ring-2{--tw-ring-offset-shadow:var(--tw-ring-inset) 0 0 0 var(--tw-ring-offset-width) var(--tw-ring-offset-color);--tw-ring-shadow:var(--tw-ring-inset) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color);box-shadow:var(--tw-ring-offset-shadow),var(--tw-ring-shadow),var(--tw-shadow,0 0 #0000)}.ring-gb-fg{--tw-ring-opacity:1;--tw-ring-color:rgb(var(--gb-fg-rgb)/var(--tw-ring-opacity,1))}.filter{filter:var(--tw-blur) var(--tw-brightness) var(--tw-contrast) var(--tw-grayscale) var(--tw-hue-rotate) var(--tw-invert) var(--tw-saturate) var(--tw-sepia) var(--tw-drop-shadow)}.backdrop-blur-sm{--tw-backdrop-blur:blur(4px);-webkit-backdrop-filter:var(--tw-backdrop-blur) var(--tw-backdrop-brightness) var(--tw-backdrop-contrast) var(--tw-backdrop-grayscale) var(--tw-backdrop-hue-rotate) var(--tw-backdrop-invert) var(--tw-backdrop-opacity) var(--tw-backdrop-saturate) var(--tw-backdrop-sepia);backdrop-filter:var(--tw-backdrop-blur) var(--tw-backdrop-brightness) var(--tw-backdrop-contrast) var(--tw-backdrop-grayscale) var(--tw-backdrop-hue-rotate) var(--tw-backdrop-invert) var(--tw-backdrop-opacity) var(--tw-backdrop-saturate) var(--tw-backdrop-sepia)}.transition-colors{transition-property:color,background-color,border-color,text-decoration-color,fill,stroke;transition-timing-function:cubic-bezier(.4,0,.2,1);transition-duration:.15s}.hover\:bg-gb-bg2:hover{--tw-bg-opacity:1;background-color:rgb(var(--gb-bg2-rgb)/var(--tw-bg-opacity,1))}.hover\:text-gb-blue:hover{--tw-text-opacity:1;color:rgb(var(--gb-blue-rgb)/var(--tw-text-opacity,1))}.hover\:text-gb-fg:hover{--tw-text-opacity:1;color:rgb(var(--gb-fg-rgb)/var(--tw-text-opacity,1))}.hover\:text-gb-purple:hover{--tw-text-opacity:1;color:rgb(var(--gb-purple-rgb)/var(--tw-text-opacity,1))}.hover\:text-gb-red:hover{--tw-text-opacity:1;color:rgb(var(--gb-red-rgb)/var(--tw-text-opacity,1))}@media (min-width:640px){.sm\:w-52{width:13rem}.sm\:w-72{width:18rem}.sm\:grid-cols-2{grid-template-columns:repeat(2,minmax(0,1fr))}.sm\:flex-row{flex-direction:row}.sm\:items-center{align-items:center}.sm\:p-7{padding:1.75rem}}@media (min-width:768px){.md\:col-span-1{grid-column:span 1/span 1}.md\:col-span-2{grid-column:span 2/span 2}.md\:inline{display:inline}.md\:w-auto{width:auto}.md\:grid-cols-3{grid-template-columns:repeat(3,minmax(0,1fr))}.md\:justify-start{justify-content:flex-start}}@media (min-width:1024px){.lg\:col-span-2{grid-column:span 2/span 2}.lg\:col-span-3{grid-column:span 3/span 3}.lg\:w-80{width:20rem}.lg\:grid-cols-2{grid-template-columns:repeat(2,minmax(0,1fr))}.lg\:grid-cols-3{grid-template-columns:repeat(3,minmax(0,1fr))}}:root {
+*,:after,:before{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x: ;--tw-pan-y: ;--tw-pinch-zoom: ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position: ;--tw-gradient-via-position: ;--tw-gradient-to-position: ;--tw-ordinal: ;--tw-slashed-zero: ;--tw-numeric-figure: ;--tw-numeric-spacing: ;--tw-numeric-fraction: ;--tw-ring-inset: ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgba(59,130,246,.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur: ;--tw-brightness: ;--tw-contrast: ;--tw-grayscale: ;--tw-hue-rotate: ;--tw-invert: ;--tw-saturate: ;--tw-sepia: ;--tw-drop-shadow: ;--tw-backdrop-blur: ;--tw-backdrop-brightness: ;--tw-backdrop-contrast: ;--tw-backdrop-grayscale: ;--tw-backdrop-hue-rotate: ;--tw-backdrop-invert: ;--tw-backdrop-opacity: ;--tw-backdrop-saturate: ;--tw-backdrop-sepia: ;--tw-contain-size: ;--tw-contain-layout: ;--tw-contain-paint: ;--tw-contain-style: }::backdrop{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x: ;--tw-pan-y: ;--tw-pinch-zoom: ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position: ;--tw-gradient-via-position: ;--tw-gradient-to-position: ;--tw-ordinal: ;--tw-slashed-zero: ;--tw-numeric-figure: ;--tw-numeric-spacing: ;--tw-numeric-fraction: ;--tw-ring-inset: ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgba(59,130,246,.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur: ;--tw-brightness: ;--tw-contrast: ;--tw-grayscale: ;--tw-hue-rotate: ;--tw-invert: ;--tw-saturate: ;--tw-sepia: ;--tw-drop-shadow: ;--tw-backdrop-blur: ;--tw-backdrop-brightness: ;--tw-backdrop-contrast: ;--tw-backdrop-grayscale: ;--tw-backdrop-hue-rotate: ;--tw-backdrop-invert: ;--tw-backdrop-opacity: ;--tw-backdrop-saturate: ;--tw-backdrop-sepia: ;--tw-contain-size: ;--tw-contain-layout: ;--tw-contain-paint: ;--tw-contain-style: }/*! tailwindcss v3.4.19 | MIT License | https://tailwindcss.com*/*,:after,:before{box-sizing:border-box;border:0 solid #e5e7eb}:after,:before{--tw-content:""}:host,html{line-height:1.5;-webkit-text-size-adjust:100%;-moz-tab-size:4;-o-tab-size:4;tab-size:4;font-family:ui-sans-serif,system-ui,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol,Noto Color Emoji;font-feature-settings:normal;font-variation-settings:normal;-webkit-tap-highlight-color:transparent}body{margin:0;line-height:inherit}hr{height:0;color:inherit;border-top-width:1px}abbr:where([title]){-webkit-text-decoration:underline dotted;text-decoration:underline dotted}h1,h2,h3,h4,h5,h6{font-size:inherit;font-weight:inherit}a{color:inherit;text-decoration:inherit}b,strong{font-weight:bolder}code,kbd,pre,samp{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,Liberation Mono,Courier New,monospace;font-feature-settings:normal;font-variation-settings:normal;font-size:1em}small{font-size:80%}sub,sup{font-size:75%;line-height:0;position:relative;vertical-align:baseline}sub{bottom:-.25em}sup{top:-.5em}table{text-indent:0;border-color:inherit;border-collapse:collapse}button,input,optgroup,select,textarea{font-family:inherit;font-feature-settings:inherit;font-variation-settings:inherit;font-size:100%;font-weight:inherit;line-height:inherit;letter-spacing:inherit;color:inherit;margin:0;padding:0}button,select{text-transform:none}button,input:where([type=button]),input:where([type=reset]),input:where([type=submit]){-webkit-appearance:button;background-color:transparent;background-image:none}:-moz-focusring{outline:auto}:-moz-ui-invalid{box-shadow:none}progress{vertical-align:baseline}::-webkit-inner-spin-button,::-webkit-outer-spin-button{height:auto}[type=search]{-webkit-appearance:textfield;outline-offset:-2px}::-webkit-search-decoration{-webkit-appearance:none}::-webkit-file-upload-button{-webkit-appearance:button;font:inherit}summary{display:list-item}blockquote,dd,dl,figure,h1,h2,h3,h4,h5,h6,hr,p,pre{margin:0}fieldset{margin:0}fieldset,legend{padding:0}menu,ol,ul{list-style:none;margin:0;padding:0}dialog{padding:0}textarea{resize:vertical}input::-moz-placeholder,textarea::-moz-placeholder{opacity:1;color:#9ca3af}input::placeholder,textarea::placeholder{opacity:1;color:#9ca3af}[role=button],button{cursor:pointer}:disabled{cursor:default}audio,canvas,embed,iframe,img,object,svg,video{display:block;vertical-align:middle}img,video{max-width:100%;height:auto}[hidden]:where(:not([hidden=until-found])){display:none}.container{width:100%}@media (min-width:640px){.container{max-width:640px}}@media (min-width:768px){.container{max-width:768px}}@media (min-width:1024px){.container{max-width:1024px}}@media (min-width:1280px){.container{max-width:1280px}}@media (min-width:1536px){.container{max-width:1536px}}.pointer-events-none{pointer-events:none}.pointer-events-auto{pointer-events:auto}.visible{visibility:visible}.static{position:static}.fixed{position:fixed}.absolute{position:absolute}.relative{position:relative}.inset-0{inset:0}.inset-y-0{top:0;bottom:0}.left-4{left:1rem}.right-2{right:.5rem}.right-3{right:.75rem}.right-4{right:1rem}.top-3{top:.75rem}.z-10{z-index:10}.z-40{z-index:40}.z-50{z-index:50}.z-\[60\]{z-index:60}.mx-2{margin-left:.5rem;margin-right:.5rem}.mx-auto{margin-left:auto;margin-right:auto}.mb-1{margin-bottom:.25rem}.mb-2{margin-bottom:.5rem}.mb-3{margin-bottom:.75rem}.mb-4{margin-bottom:1rem}.mb-5{margin-bottom:1.25rem}.mb-6{margin-bottom:1.5rem}.ml-1{margin-left:.25rem}.ml-8{margin-left:2rem}.mr-1{margin-right:.25rem}.mr-2{margin-right:.5rem}.mt-1{margin-top:.25rem}.mt-10{margin-top:2.5rem}.mt-12{margin-top:3rem}.mt-2{margin-top:.5rem}.mt-3{margin-top:.75rem}.mt-4{margin-top:1rem}.mt-5{margin-top:1.25rem}.block{display:block}.inline{display:inline}.flex{display:flex}.inline-flex{display:inline-flex}.table{display:table}.\!grid{display:grid!important}.grid{display:grid}.contents{display:contents}.hidden{display:none}.h-3{height:.75rem}.h-4{height:1rem}.h-9{height:2.25rem}.max-h-72{max-height:18rem}.max-h-80{max-height:20rem}.max-h-96{max-height:24rem}.max-h-\[60vh\]{max-height:60vh}.min-h-4{min-height:1rem}.min-h-\[calc\(100vh-5\.5rem\)\]{min-height:calc(100vh - 5.5rem)}.min-h-screen{min-height:100vh}.w-12{width:3rem}.w-3{width:.75rem}.w-4{width:1rem}.w-full{width:100%}.min-w-0{min-width:0}.min-w-48{min-width:12rem}.min-w-52{min-width:13rem}.max-w-5xl{max-width:64rem}.max-w-6xl{max-width:72rem}.max-w-lg{max-width:32rem}.max-w-md{max-width:28rem}.max-w-sm{max-width:24rem}.max-w-xs{max-width:20rem}.flex-1{flex:1 1 0%}.grow{flex-grow:1}.cursor-pointer{cursor:pointer}.select-none{-webkit-user-select:none;-moz-user-select:none;user-select:none}.flex-col{flex-direction:column}.flex-wrap{flex-wrap:wrap}.items-start{align-items:flex-start}.items-end{align-items:flex-end}.items-center{align-items:center}.justify-end{justify-content:flex-end}.justify-center{justify-content:center}.justify-between{justify-content:space-between}.gap-1{gap:.25rem}.gap-1\.5{gap:.375rem}.gap-2{gap:.5rem}.gap-3{gap:.75rem}.gap-4{gap:1rem}.-space-x-1>:not([hidden])~:not([hidden]){--tw-space-x-reverse:0;margin-right:calc(-.25rem*var(--tw-space-x-reverse));margin-left:calc(-.25rem*(1 - var(--tw-space-x-reverse)))}.space-y-2>:not([hidden])~:not([hidden]){--tw-space-y-reverse:0;margin-top:calc(.5rem*(1 - var(--tw-space-y-reverse)));margin-bottom:calc(.5rem*var(--tw-space-y-reverse))}.space-y-4>:not([hidden])~:not([hidden]){--tw-space-y-reverse:0;margin-top:calc(1rem*(1 - var(--tw-space-y-reverse)));margin-bottom:calc(1rem*var(--tw-space-y-reverse))}.overflow-auto{overflow:auto}.overflow-x-auto{overflow-x:auto}.rounded-full{border-radius:9999px}.rounded-lg{border-radius:.5rem}.rounded-sm{border-radius:.125rem}.border{border-width:1px}.border-t{border-top-width:1px}.border-gb-aqua\/80{border-color:rgb(var(--gb-aqua-rgb)/.8)}.border-gb-bg0{--tw-border-opacity:1;border-color:rgb(var(--gb-bg0-rgb)/var(--tw-border-opacity,1))}.border-gb-bg2{--tw-border-opacity:1;border-color:rgb(var(--gb-bg2-rgb)/var(--tw-border-opacity,1))}.border-gb-blue\/80{border-color:rgb(var(--gb-blue-rgb)/.8)}.border-gb-green\/40{border-color:rgb(var(--gb-green-rgb)/.4)}.border-gb-green\/80{border-color:rgb(var(--gb-green-rgb)/.8)}.border-gb-purple\/80{border-color:rgb(var(--gb-purple-rgb)/.8)}.border-gb-red\/50{border-color:rgb(var(--gb-red-rgb)/.5)}.border-gb-red\/80{border-color:rgb(var(--gb-red-rgb)/.8)}.border-gb-yellow\/80{border-color:rgb(var(--gb-yellow-rgb)/.8)}.bg-black\/45{background-color:rgba(0,0,0,.45)}.bg-gb-aqua{--tw-bg-opacity:1;background-color:rgb(var(--gb-aqua-rgb)/var(--tw-bg-opacity,1))}.bg-gb-bg0\/60{background-color:rgb(var(--gb-bg0-rgb)/.6)}.bg-gb-bg1{--tw-bg-opacity:1;background-color:rgb(var(--gb-bg1-rgb)/var(--tw-bg-opacity,1))}.bg-gb-blue{--tw-bg-opacity:1;background-color:rgb(var(--gb-blue-rgb)/var(--tw-bg-opacity,1))}.bg-gb-green{--tw-bg-opacity:1;background-color:rgb(var(--gb-green-rgb)/var(--tw-bg-opacity,1))}.bg-gb-purple{--tw-bg-opacity:1;background-color:rgb(var(--gb-purple-rgb)/var(--tw-bg-opacity,1))}.bg-gb-red{--tw-bg-opacity:1;background-color:rgb(var(--gb-red-rgb)/var(--tw-bg-opacity,1))}.bg-gb-yellow{--tw-bg-opacity:1;background-color:rgb(var(--gb-yellow-rgb)/var(--tw-bg-opacity,1))}.p-2{padding:.5rem}.p-4{padding:1rem}.p-5{padding:1.25rem}.p-6{padding:1.5rem}.px-1{padding-left:.25rem;padding-right:.25rem}.px-2{padding-left:.5rem;padding-right:.5rem}.px-3{padding-left:.75rem;padding-right:.75rem}.px-4{padding-left:1rem;padding-right:1rem}.px-6{padding-left:1.5rem;padding-right:1.5rem}.py-1{padding-top:.25rem;padding-bottom:.25rem}.py-2{padding-top:.5rem;padding-bottom:.5rem}.py-3{padding-top:.75rem;padding-bottom:.75rem}.py-6{padding-top:1.5rem;padding-bottom:1.5rem}.pr-9{padding-right:2.25rem}.pt-2{padding-top:.5rem}.text-left{text-align:left}.text-center{text-align:center}.text-right{text-align:right}.font-mono{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,Liberation Mono,Courier New,monospace}.text-2xl{font-size:1.5rem;line-height:2rem}.text-4xl{font-size:2.25rem;line-height:2.5rem}.text-\[10px\]{font-size:10px}.text-base{font-size:1rem;line-height:1.5rem}.text-lg{font-size:1.125rem;line-height:1.75rem}.text-sm{font-size:.875rem;line-height:1.25rem}.text-xs{font-size:.75rem;line-height:1rem}.font-bold{font-weight:700}.font-medium{font-weight:500}.font-semibold{font-weight:600}.uppercase{text-transform:uppercase}.leading-4{line-height:1rem}.leading-none{line-height:1}.leading-relaxed{line-height:1.625}.tracking-wide{letter-spacing:.025em}.tracking-widest{letter-spacing:.1em}.text-gb-bg0{--tw-text-opacity:1;color:rgb(var(--gb-bg0-rgb)/var(--tw-text-opacity,1))}.text-gb-blue{--tw-text-opacity:1;color:rgb(var(--gb-blue-rgb)/var(--tw-text-opacity,1))}.text-gb-fg{--tw-text-opacity:1;color:rgb(var(--gb-fg-rgb)/var(--tw-text-opacity,1))}.text-gb-fg\/50{color:rgb(var(--gb-fg-rgb)/.5)}.text-gb-fg\/60{color:rgb(var(--gb-fg-rgb)/.6)}.text-gb-fg\/70{color:rgb(var(--gb-fg-rgb)/.7)}.text-gb-fg\/75{color:rgb(var(--gb-fg-rgb)/.75)}.text-gb-fg\/80{color:rgb(var(--gb-fg-rgb)/.8)}.text-gb-fg\/85{color:rgb(var(--gb-fg-rgb)/.85)}.text-gb-fg\/90{color:rgb(var(--gb-fg-rgb)/.9)}.text-gb-green{--tw-text-opacity:1;color:rgb(var(--gb-green-rgb)/var(--tw-text-opacity,1))}.text-gb-purple{--tw-text-opacity:1;color:rgb(var(--gb-purple-rgb)/var(--tw-text-opacity,1))}.text-gb-red{--tw-text-opacity:1;color:rgb(var(--gb-red-rgb)/var(--tw-text-opacity,1))}.text-gb-yellow{--tw-text-opacity:1;color:rgb(var(--gb-yellow-rgb)/var(--tw-text-opacity,1))}.underline{text-decoration-line:underline}.decoration-dotted{text-decoration-style:dotted}.underline-offset-2{text-underline-offset:2px}.accent-\[rgb\(var\(--gb-aqua-rgb\)\)\]{accent-color:rgb(var(--gb-aqua-rgb))}.shadow-lg{--tw-shadow:0 10px 15px -3px rgba(0,0,0,.1),0 4px 6px -4px rgba(0,0,0,.1);--tw-shadow-colored:0 10px 15px -3px var(--tw-shadow-color),0 4px 6px -4px var(--tw-shadow-color);box-shadow:var(--tw-ring-offset-shadow,0 0 #0000),var(--tw-ring-shadow,0 0 #0000),var(--tw-shadow)}.ring{--tw-ring-offset-shadow:var(--tw-ring-inset) 0 0 0 var(--tw-ring-offset-width) var(--tw-ring-offset-color);--tw-ring-shadow:var(--tw-ring-inset) 0 0 0 calc(3px + var(--tw-ring-offset-width)) var(--tw-ring-color)}.ring,.ring-2{box-shadow:var(--tw-ring-offset-shadow),var(--tw-ring-shadow),var(--tw-shadow,0 0 #0000)}.ring-2{--tw-ring-offset-shadow:var(--tw-ring-inset) 0 0 0 var(--tw-ring-offset-width) var(--tw-ring-offset-color);--tw-ring-shadow:var(--tw-ring-inset) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color)}.ring-gb-fg{--tw-ring-opacity:1;--tw-ring-color:rgb(var(--gb-fg-rgb)/var(--tw-ring-opacity,1))}.filter{filter:var(--tw-blur) var(--tw-brightness) var(--tw-contrast) var(--tw-grayscale) var(--tw-hue-rotate) var(--tw-invert) var(--tw-saturate) var(--tw-sepia) var(--tw-drop-shadow)}.backdrop-blur-sm{--tw-backdrop-blur:blur(4px);-webkit-backdrop-filter:var(--tw-backdrop-blur) var(--tw-backdrop-brightness) var(--tw-backdrop-contrast) var(--tw-backdrop-grayscale) var(--tw-backdrop-hue-rotate) var(--tw-backdrop-invert) var(--tw-backdrop-opacity) var(--tw-backdrop-saturate) var(--tw-backdrop-sepia);backdrop-filter:var(--tw-backdrop-blur) var(--tw-backdrop-brightness) var(--tw-backdrop-contrast) var(--tw-backdrop-grayscale) var(--tw-backdrop-hue-rotate) var(--tw-backdrop-invert) var(--tw-backdrop-opacity) var(--tw-backdrop-saturate) var(--tw-backdrop-sepia)}.transition-colors{transition-property:color,background-color,border-color,text-decoration-color,fill,stroke;transition-timing-function:cubic-bezier(.4,0,.2,1);transition-duration:.15s}.hover\:bg-gb-bg2:hover{--tw-bg-opacity:1;background-color:rgb(var(--gb-bg2-rgb)/var(--tw-bg-opacity,1))}.hover\:text-gb-blue:hover{--tw-text-opacity:1;color:rgb(var(--gb-blue-rgb)/var(--tw-text-opacity,1))}.hover\:text-gb-fg:hover{--tw-text-opacity:1;color:rgb(var(--gb-fg-rgb)/var(--tw-text-opacity,1))}.hover\:text-gb-purple:hover{--tw-text-opacity:1;color:rgb(var(--gb-purple-rgb)/var(--tw-text-opacity,1))}.hover\:text-gb-red:hover{--tw-text-opacity:1;color:rgb(var(--gb-red-rgb)/var(--tw-text-opacity,1))}@media (min-width:640px){.sm\:w-52{width:13rem}.sm\:w-72{width:18rem}.sm\:grid-cols-2{grid-template-columns:repeat(2,minmax(0,1fr))}.sm\:flex-row{flex-direction:row}.sm\:items-center{align-items:center}.sm\:p-7{padding:1.75rem}}@media (min-width:768px){.md\:col-span-1{grid-column:span 1/span 1}.md\:col-span-2{grid-column:span 2/span 2}.md\:inline{display:inline}.md\:w-auto{width:auto}.md\:grid-cols-3{grid-template-columns:repeat(3,minmax(0,1fr))}.md\:justify-start{justify-content:flex-start}}@media (min-width:1024px){.lg\:col-span-2{grid-column:span 2/span 2}.lg\:col-span-3{grid-column:span 3/span 3}.lg\:w-80{width:20rem}.lg\:grid-cols-2{grid-template-columns:repeat(2,minmax(0,1fr))}.lg\:grid-cols-3{grid-template-columns:repeat(3,minmax(0,1fr))}}:root {
   --gb-bg0-rgb: 249 245 215;
   --gb-bg1-rgb: 235 219 178;
   --gb-bg2-rgb: 213 196 161;
@@ -20,10 +20,6 @@
   --gb-fg-rgb: 235 219 178;
   --gb-shadow-rgb: 12 12 12;
   --gb-highlight-rgb: 59 59 59;
-}
-
-html, body {
-  overflow-x: hidden;
 }
 
 body {
@@ -114,26 +110,28 @@ header .neu-btn {
   box-shadow: inset 4px 4px 8px rgb(var(--gb-shadow-rgb)), inset -4px -4px 8px rgb(var(--gb-highlight-rgb) / 0.55);
 }
 
-.mobile-tab-label {
-  display: none;
-}
-
-.desktop-nav-label {
-  display: none;
-}
-
-@media (min-width: 768px) {
-  .desktop-nav-label {
-    display: inline;
-  }
-}
-
 .neu-btn-sm {
   box-shadow: 3px 3px 6px rgb(var(--gb-shadow-rgb)), -3px -3px 6px rgb(var(--gb-highlight-rgb) / 0.55);
 }
 
 .neu-btn-sm:active {
   box-shadow: inset 2px 2px 4px rgb(var(--gb-shadow-rgb)), inset -2px -2px 4px rgb(var(--gb-highlight-rgb) / 0.55);
+}
+
+/* Fixed-height chart container. Chart.js runs with maintainAspectRatio off
+   (set in common.js once the bundle loads) and fills this box, so the page
+   reserves the final chart height up front - no layout shift when the
+   canvas resizes after the bundle arrives, and none between "empty state"
+   and "chart" either. */
+.chart-box {
+  position: relative;
+  height: 16rem;
+  width: 100%;
+}
+
+.chart-box > canvas {
+  display: block;
+  max-width: 100%;
 }
 
 @keyframes skeleton-pulse {
@@ -200,177 +198,6 @@ header .neu-btn {
   border-bottom: 1px dotted rgb(var(--gb-blue-rgb) / 0.7);
 }
 
-@media (max-width: 640px) {
-  .dashboard-header {
-    display: block;
-    margin-bottom: 0.75rem;
-  }
-
-  .dashboard-header > div:first-child {
-    display: none;
-  }
-
-  .mobile-header .mobile-tab-nav {
-    display: flex;
-    flex-wrap: nowrap;
-    gap: 0.4rem;
-    width: 100%;
-    overflow-x: auto;
-    padding: 0.15rem 0.15rem 0.35rem;
-    scrollbar-width: none;
-  }
-
-  .mobile-header .mobile-tab-nav::-webkit-scrollbar {
-    display: none;
-  }
-
-  .mobile-header .mobile-tab-nav > a,
-  .mobile-header .mobile-tab-nav > button,
-  .mobile-header .mobile-tab-nav > form,
-  .mobile-header .mobile-tab-nav > form > button {
-    min-width: 0;
-    flex: 0 0 auto;
-  }
-
-  .mobile-header .mobile-tab-nav > a,
-  .mobile-header .mobile-tab-nav > button,
-  .mobile-header .mobile-tab-nav > form > button {
-    min-height: 2.6rem;
-    padding: 0.4rem 0.7rem;
-    gap: 0.3rem;
-    font-size: 0.8rem;
-  }
-
-  .mobile-header .mobile-tab-nav .material-symbols-rounded {
-    font-size: 1.1rem;
-  }
-
-  .mobile-header .mobile-tab-label,
-  .mobile-header .desktop-nav-label {
-    display: inline;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  .mobile-header .mobile-tab-nav > form {
-    display: block;
-  }
-
-  .mobile-header .mobile-tab-nav > form > button {
-    display: inline-flex;
-  }
-
-  header h1 {
-    font-size: 1.125rem;
-    gap: 0.4rem;
-  }
-
-  header h1 .material-symbols-rounded {
-    font-size: 1rem;
-  }
-
-  header p {
-    font-size: 0.75rem;
-  }
-
-  .session-actions {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .session-actions #startBtn,
-  .session-actions #pauseBtn,
-  .session-actions #resumeBtn {
-    grid-column: 1 / -1;
-  }
-
-  .session-actions #finishBtn,
-  .session-actions #cancelBtn {
-    width: 100%;
-  }
-
-  .session-actions > button:not(.hidden) {
-    min-height: 3.25rem;
-    justify-content: center;
-    font-size: 0.95rem;
-  }
-
-  .session-actions > button:not(.hidden) .material-symbols-rounded {
-    font-size: 1.1rem;
-  }
-
-  .session-adjust-actions {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 0.5rem;
-  }
-
-  .session-adjust-actions > button:not(.hidden) {
-    width: 100%;
-    min-height: 3rem;
-    justify-content: center;
-    margin-top: 0.75rem;
-    padding-left: 0.5rem;
-    padding-right: 0.5rem;
-  }
-
-  #sessionTracker {
-    padding: 0.85rem;
-  }
-
-  #sessionLabel {
-    font-size: 0.95rem;
-    line-height: 1.4;
-  }
-
-  #timerDisplay {
-    font-size: 2rem;
-    letter-spacing: 0.12em;
-  }
-
-  .custom-tooltip {
-    display: none !important;
-  }
-}
-
-@media (max-width: 768px) {
-  .responsive-table thead {
-    display: none;
-  }
-
-  .responsive-table,
-  .responsive-table tbody,
-  .responsive-table tr,
-  .responsive-table td {
-    display: block;
-    width: 100%;
-  }
-
-  .responsive-table tr {
-    border-top: 1px solid rgb(var(--gb-bg2-rgb));
-    padding: 0.45rem 0;
-  }
-
-  .responsive-table td {
-    border: 0;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 0.8rem;
-    padding: 0.35rem 0;
-    text-align: right;
-  }
-
-  .responsive-table td::before {
-    content: attr(data-label);
-    font-weight: 600;
-    color: rgb(var(--gb-fg-rgb) / 0.8);
-    text-align: left;
-    flex: 1 1 auto;
-  }
-}
-
 /* Leaderboard — always horizontal, alternating row background */
 .leaderboard-table {
   width: 100%;
@@ -391,59 +218,6 @@ header .neu-btn {
 
 .leaderboard-table tbody tr:nth-child(even) {
   background: rgb(var(--gb-bg1-rgb) / 0.55);
-}
-
-@media (max-width: 640px) {
-  .leaderboard-table thead th,
-  .leaderboard-table tbody td {
-    padding: 0.3rem 0.3rem;
-    font-size: 0.8rem;
-  }
-}
-
-/* History table — compact 2-row grid on mobile */
-@media (max-width: 768px) {
-  .history-table thead { display: none; }
-
-  .history-table,
-  .history-table tbody { display: block; width: 100%; }
-
-  .history-table tr {
-    display: grid;
-    grid-template-columns: 1fr auto;
-    padding: 0.4rem 0;
-    gap: 0.1rem 0.5rem;
-  }
-
-  .history-table td { display: block; padding: 0; border: 0; }
-
-  .history-table td:nth-child(1) {
-    grid-column: 1; grid-row: 1;
-    font-weight: 600;
-    min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-  }
-
-  .history-table td:nth-child(2) {
-    grid-column: 2; grid-row: 1;
-    text-align: right; white-space: nowrap;
-  }
-
-  .history-table td:nth-child(3) {
-    grid-column: 1; grid-row: 2;
-    font-size: 0.75rem; color: rgb(var(--gb-fg-rgb) / 0.75);
-    min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-  }
-
-  .history-table td:nth-child(4) {
-    grid-column: 2; grid-row: 2;
-    font-size: 0.75rem; color: rgb(var(--gb-fg-rgb) / 0.75);
-    text-align: right; white-space: nowrap;
-  }
-
-  .history-table td:nth-child(5) {
-    grid-column: 1 / -1; grid-row: 3;
-    display: flex; gap: 0.3rem; padding-top: 0.25rem;
-  }
 }
 
 /* Self-hosted Material Symbols Rounded, subsetted to only the ~50 icon
@@ -536,69 +310,290 @@ header .neu-btn {
   white-space: nowrap;
 }
 
-/* Mobile dashboard: a focused command center followed by scannable history.
-   The desktop grid and table remain unchanged above this breakpoint. */
-@media (max-width: 767px) {
-  .app-shell {
-    padding: 0.75rem;
+/* ===========================================================================
+   APP SHELL
+   Tokens shared by the fixed bottom furniture (tab bar, session dock) and by
+   everything that has to sit clear of it. They are 0 on desktop, so the
+   calc()s below collapse to the plain desktop values and nothing above
+   768px is affected.
+   =========================================================================== */
+:root {
+  --app-tabbar-h: 0px;
+  --app-dock-h: 0px;
+  --app-safe-b: env(safe-area-inset-bottom, 0px);
+}
+
+/* Every bottom-anchored floating overlay uses this instead of a hard-coded
+   `bottom-4`: the install prompt, the service-worker update notice, the toast
+   container and the dashboard's collaboration notifications. Before this they
+   all sat at the same 1rem and stacked on top of each other. */
+.app-bottom-float {
+  bottom: calc(1rem + var(--app-tabbar-h) + var(--app-dock-h) + var(--app-safe-b));
+}
+
+/* Stacking order for the bottom furniture. Modals (z-50 / z-[60]) stay above
+   all of it, which is what we want - a dialog should cover the tab bar. */
+.mobile-tabbar { z-index: 45; }
+.session-dock { z-index: 46; }
+
+/* Hidden by default: these only exist as layout below the breakpoint. */
+.mobile-tabbar,
+.session-dock {
+  display: none;
+}
+
+/* The sheet only exists as layout below the breakpoint. Hiding it outright
+   here (not just when .hidden is set) means an open sheet cannot survive a
+   rotation up to a tablet width, where the "Me" tab that opens it is gone. */
+.mobile-sheet,
+.mobile-sheet.hidden {
+  display: none;
+}
+
+/* ===========================================================================
+   MOBILE - the only mobile media query in this file.
+
+   767.98px is the exact complement of Tailwind's `md:` (min-width: 768px), so
+   these hand-written rules and the `md:` utilities in the templates can never
+   disagree about where "mobile" ends. `window.MOBILE_QUERY` in common.js is
+   the same string, so the JS agrees too.
+
+   Do not add a second breakpoint. What this replaced was four overlapping
+   blocks (two at 640px, two at 768px, one at 767px) that defined the same
+   components more than once and left a 1px seam at exactly 768px.
+   =========================================================================== */
+@media (max-width: 767.98px) {
+  /* Only reserve space when the tab bar is actually rendered. Admin-only
+     sessions have no tab bar and keep the header nav. */
+  body.has-tabbar {
+    --app-tabbar-h: 3.9rem;
   }
 
+  .app-shell {
+    padding-top: 1rem;
+    padding-right: 0.85rem;
+    padding-left: 0.85rem;
+    padding-bottom: calc(1.25rem + var(--app-tabbar-h) + var(--app-dock-h) + var(--app-safe-b));
+  }
+
+  /* ---- Header: title only. Navigation lives in the tab bar. ---- */
+  body.has-tabbar .mobile-tab-nav {
+    display: none;
+  }
+
+  .mobile-header {
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+  }
+
+  header h1 {
+    gap: 0.45rem;
+    font-size: 1.3rem;
+  }
+
+  header h1 .material-symbols-rounded {
+    font-size: 1.2rem;
+  }
+
+  header p {
+    font-size: 0.8rem;
+  }
+
+  /* ---- Bottom tab bar ---- */
+  .mobile-tabbar {
+    position: fixed;
+    inset: auto 0 0 0;
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: 1fr;
+    padding-bottom: var(--app-safe-b);
+    border-top: 1px solid rgb(var(--gb-bg2-rgb));
+    background: rgb(var(--gb-bg0-rgb));
+    box-shadow: 0 -6px 18px rgb(var(--gb-shadow-rgb) / 0.55);
+  }
+
+  .mobile-tab {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.12rem;
+    min-height: 3.9rem;
+    padding: 0.35rem 0.25rem;
+    color: rgb(var(--gb-fg-rgb) / 0.62);
+    font-size: 0.68rem;
+    font-weight: 600;
+    line-height: 1.1;
+    text-align: center;
+  }
+
+  .mobile-tab .material-symbols-rounded {
+    font-size: 1.4rem;
+  }
+
+  /* The active tab is always rendered (the old header nav omitted the current
+     page, so buttons moved around underneath your thumb page to page). */
+  .mobile-tab[aria-current="page"] {
+    color: rgb(var(--gb-blue-rgb));
+  }
+
+  .mobile-tab[aria-current="page"]::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 50%;
+    width: 2.25rem;
+    height: 3px;
+    border-radius: 0 0 3px 3px;
+    background: rgb(var(--gb-blue-rgb));
+    transform: translateX(-50%);
+  }
+
+  /* ---- "Me" sheet: everything the old scrolling icon strip used to hold ---- */
+  .mobile-sheet {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 55;
+  }
+
+  .mobile-sheet.hidden {
+    display: none;
+  }
+
+  .mobile-sheet-panel {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    max-height: 80vh;
+    overflow-y: auto;
+    padding: 0.85rem 0.85rem calc(0.85rem + var(--app-safe-b));
+    border-radius: 1.1rem 1.1rem 0 0;
+    border-top: 1px solid rgb(var(--gb-bg2-rgb));
+    background: rgb(var(--gb-bg0-rgb));
+  }
+
+  .mobile-sheet-item {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    width: 100%;
+    min-height: 3.1rem;
+    padding: 0.55rem 0.7rem;
+    border-radius: 0.85rem;
+    color: rgb(var(--gb-fg-rgb));
+    font-size: 0.95rem;
+    font-weight: 600;
+    text-align: left;
+  }
+
+  .mobile-sheet-item:active {
+    background: rgb(var(--gb-bg1-rgb));
+  }
+
+  .mobile-sheet-item .material-symbols-rounded {
+    font-size: 1.3rem;
+  }
+
+  /* ---- Session dock: the running session, reachable from every tab ---- */
+  .session-dock.is-visible {
+    position: fixed;
+    right: 0;
+    bottom: calc(var(--app-tabbar-h) + var(--app-safe-b));
+    left: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.5rem 0.75rem;
+    border-top: 1px solid rgb(var(--gb-bg2-rgb));
+    background: rgb(var(--gb-bg1-rgb));
+    box-shadow: 0 -4px 14px rgb(var(--gb-shadow-rgb) / 0.45);
+  }
+
+  .session-dock-info {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .session-dock-cat {
+    overflow: hidden;
+    color: rgb(var(--gb-fg-rgb));
+    font-size: 0.85rem;
+    font-weight: 700;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .session-dock-time {
+    color: rgb(var(--gb-fg-rgb) / 0.8);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 1.05rem;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.2;
+  }
+
+  .session-dock-actions {
+    display: flex;
+    flex: 0 0 auto;
+    gap: 0.4rem;
+  }
+
+  .session-dock-actions > button {
+    min-width: 3rem;
+    min-height: 2.7rem;
+    justify-content: center;
+  }
+
+  /* ---- Dashboard ---- */
   .dashboard-grid {
     display: flex;
     flex-direction: column;
-    gap: 0.65rem;
+    gap: 0.75rem;
   }
 
   .dashboard-grid > .tracker-section { order: 1; }
   .dashboard-grid > .history-section { order: 2; }
   .dashboard-grid > .leaderboard-section { order: 3; }
-  .dashboard-grid > .personal-section { order: 4; }
-  .dashboard-grid > .team-section { order: 5; }
-  .dashboard-grid > .trend-section { order: 6; }
+  .dashboard-grid > .insights-summary { order: 4; }
+  .dashboard-grid > .insights-panel { order: 5; }
 
   .dashboard-grid > section {
+    padding: 0.9rem;
     border-radius: 1rem;
-    padding: 0.75rem;
   }
 
-  .tracker-section > h2,
-  .history-section h2,
-  .leaderboard-section h2,
-  .personal-section h2,
-  .team-section h2,
-  .trend-section h2 {
+  .dashboard-grid h2 {
     font-size: 1.05rem;
   }
 
-  .tracker-section > .grid {
-    gap: 0.55rem;
+  .dashboard-grid > section > p {
+    font-size: 0.78rem;
   }
 
-  .tracker-section label > span {
-    display: none;
+  /* ---- Session tracker ---- */
+  .tracker-section > .grid {
+    gap: 0.6rem;
   }
 
   .tracker-section .neu-input {
-    min-height: 2.8rem;
-    padding: 0.55rem 0.75rem;
+    min-height: 2.9rem;
+    padding: 0.6rem 0.8rem;
     font-size: 0.95rem;
   }
 
   #sessionTracker {
-    margin-top: 0.65rem;
-    padding: 0.65rem;
-  }
-
-  #actionMessage {
-    min-height: 1.2rem;
+    margin-top: 0.75rem;
+    padding: 0.8rem;
   }
 
   #sessionLabel {
     max-width: 27rem;
-    margin-left: auto;
     margin-right: auto;
+    margin-left: auto;
     font-size: 1.05rem;
-    line-height: 1.2;
+    line-height: 1.25;
   }
 
   #timerDisplay {
@@ -607,22 +602,49 @@ header .neu-btn {
     letter-spacing: 0.04em;
   }
 
+  #actionMessage {
+    min-height: 1.2rem;
+  }
+
   .session-actions {
-    margin-top: 0.9rem;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 0.5rem;
+    margin-top: 0.9rem;
+  }
+
+  /* Whichever primary control is showing spans the row; finish/cancel pair up
+     underneath it. */
+  .session-actions #startBtn,
+  .session-actions #pauseBtn,
+  .session-actions #resumeBtn {
+    grid-column: 1 / -1;
   }
 
   .session-actions > button:not(.hidden) {
+    justify-content: center;
+    width: 100%;
     min-height: 3.1rem;
+    font-size: 0.95rem;
+  }
+
+  .session-actions > button:not(.hidden) .material-symbols-rounded {
+    font-size: 1.1rem;
   }
 
   .session-adjust-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 0.5rem;
   }
 
   .session-adjust-actions > button:not(.hidden) {
+    justify-content: center;
+    width: 100%;
     min-height: 2.8rem;
     margin-top: 0.65rem;
+    padding-right: 0.5rem;
+    padding-left: 0.5rem;
     font-size: 0.8rem;
   }
 
@@ -644,6 +666,7 @@ header .neu-btn {
     padding: 0.3rem 0.55rem;
   }
 
+  /* ---- History ---- */
   .history-section {
     overflow: hidden;
   }
@@ -670,6 +693,7 @@ header .neu-btn {
     min-height: 2.6rem;
   }
 
+  /* Page scroll only - no scroller nested inside a scroller. */
   .history-section .overflow-auto {
     overflow: visible;
   }
@@ -680,11 +704,18 @@ header .neu-btn {
     width: 100%;
   }
 
+  .history-table thead {
+    display: none;
+  }
+
   .history-table tbody {
     display: grid;
     gap: 0.55rem;
   }
 
+  /* Each row becomes a card. Cells are placed by semantic class, not by
+     nth-child: user.html omits the actions column when the viewer can't
+     delete sessions, and positional rules broke silently when it did. */
   .history-table tr {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
@@ -703,7 +734,7 @@ header .neu-btn {
     font-size: 0.8rem;
   }
 
-  .history-table td:nth-child(1) {
+  .history-table .hist-cat {
     grid-column: 1;
     grid-row: 1;
     overflow: hidden;
@@ -714,17 +745,18 @@ header .neu-btn {
     white-space: nowrap;
   }
 
-  .history-table td:nth-child(2) {
+  .history-table .hist-dur {
     grid-column: 2;
     grid-row: 1;
     color: rgb(var(--gb-fg-rgb));
     font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
     font-size: 0.85rem;
+    font-variant-numeric: tabular-nums;
     text-align: right;
     white-space: nowrap;
   }
 
-  .history-table td:nth-child(3) {
+  .history-table .hist-note {
     grid-column: 1;
     grid-row: 2;
     overflow: hidden;
@@ -733,7 +765,7 @@ header .neu-btn {
     white-space: nowrap;
   }
 
-  .history-table td:nth-child(4) {
+  .history-table .hist-when {
     grid-column: 2;
     grid-row: 2;
     padding-top: 0.18rem;
@@ -741,7 +773,7 @@ header .neu-btn {
     white-space: nowrap;
   }
 
-  .history-table td:nth-child(5) {
+  .history-table .hist-actions {
     grid-column: 1 / -1;
     grid-row: 3;
     display: flex;
@@ -749,17 +781,17 @@ header .neu-btn {
     padding-top: 0.55rem;
   }
 
-  .history-table td:nth-child(5) button {
+  .history-table .hist-actions button {
+    justify-content: center;
     min-width: 2.65rem;
     min-height: 2.35rem;
     margin-right: 0;
-    justify-content: center;
   }
 
   .history-footer {
     align-items: stretch;
-    margin-top: 0.75rem;
     gap: 0.6rem;
+    margin-top: 0.75rem;
   }
 
   #recentHistoryHint {
@@ -772,22 +804,122 @@ header .neu-btn {
     min-height: 2.7rem;
   }
 
-  .leaderboard-section,
-  .personal-section,
-  .team-section,
-  .trend-section {
-    padding: 0.9rem 1rem;
+  /* ---- Insights disclosure: the three weekly charts ----
+     Collapsed by default, so Chart.js (~200KB) is never fetched unless the
+     toggle is pressed. The panels are siblings of the toggle rather than
+     children of it, so that above 768px they are untouched grid cells. */
+  .insights-panel {
+    display: none;
   }
 
-  .leaderboard-section > p,
-  .personal-section > p,
-  .team-section > p,
-  .trend-section > p {
-    font-size: 0.75rem;
+  .insights-open .insights-panel {
+    display: block;
   }
 
-  .leaderboard-section .mt-3 {
-    margin-top: 0.65rem;
+  .insights-summary {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-height: 3.1rem;
+    padding: 0.7rem 0.9rem;
+    border: 1px solid rgb(var(--gb-bg2-rgb));
+    border-radius: 1rem;
+    background: rgb(var(--gb-bg0-rgb));
+    color: rgb(var(--gb-fg-rgb));
+    font-size: 1.05rem;
+    font-weight: 600;
+    text-align: left;
+    cursor: pointer;
+  }
+
+  /* Drawn with borders instead of an icon: the self-hosted Material Symbols
+     font is subsetted to the ligatures the app already used, and expand_more
+     is not one of them - it would render as the literal word. */
+  .insights-summary .insights-chevron {
+    width: 0.5rem;
+    height: 0.5rem;
+    margin-top: -0.25rem;
+    margin-left: auto;
+    border-right: 2px solid currentColor;
+    border-bottom: 2px solid currentColor;
+    transform: rotate(45deg);
+    transition: transform 0.15s ease;
+  }
+
+  .insights-open .insights-summary {
+    border-radius: 1rem 1rem 0 0;
+  }
+
+  .insights-open .insights-summary .insights-chevron {
+    margin-top: 0.15rem;
+    transform: rotate(-135deg);
+  }
+
+  /* ---- Charts ----
+     The desktop box is a flat 16rem at every width. On a phone that leaves a
+     tiny ring once the bottom legend wraps, so scale it with the viewport. */
+  .chart-box {
+    height: clamp(13rem, 58vw, 18rem);
+  }
+
+  /* One row per user - a fixed height squashes them as the team grows. */
+  .chart-box.chart-box-rows {
+    height: auto;
+    min-height: 13rem;
+  }
+
+  /* ---- Leaderboards ----
+     Stay horizontal, but stop shrinking to 0.8rem/0.3rem: with the nav out of
+     the header there is room to read them. */
+  .leaderboard-section .overflow-auto,
+  .all-time-leaderboard .overflow-auto {
+    max-height: none;
+    overflow: visible;
+  }
+
+  /* ---- Admin tables (out of scope for the redesign, but they used to be
+     styled at a different breakpoint than everything else). ---- */
+  .responsive-table thead {
+    display: none;
+  }
+
+  .responsive-table,
+  .responsive-table tbody,
+  .responsive-table tr,
+  .responsive-table td {
+    display: block;
+    width: 100%;
+  }
+
+  .responsive-table tr {
+    padding: 0.45rem 0;
+    border-top: 1px solid rgb(var(--gb-bg2-rgb));
+  }
+
+  .responsive-table td {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.8rem;
+    padding: 0.35rem 0;
+    border: 0;
+    text-align: right;
+  }
+
+  .responsive-table td::before {
+    content: attr(data-label);
+    flex: 1 1 auto;
+    color: rgb(var(--gb-fg-rgb) / 0.8);
+    font-weight: 600;
+    text-align: left;
+  }
+
+  /* Tooltips are pointer-driven (mouseover/mousemove in common.js), so on a
+     touch device they fire on tap and then linger. Everything that used to
+     depend on one for its label - the whole tab bar and the "Me" sheet - now
+     carries visible text instead. */
+  .custom-tooltip {
+    display: none !important;
   }
 
   .app-footer {
@@ -795,4 +927,19 @@ header .neu-btn {
     padding: 0 0.5rem;
     line-height: 1.7;
   }
+}
+
+/* Desktop: no disclosure at all. The toggle is removed from the layout and
+   the three chart sections are ordinary `lg:grid-cols-3` cells, exactly as
+   they were before the mobile work. */
+@media (min-width: 768px) {
+  .insights-summary {
+    display: none;
+  }
+}
+
+/* Numeric columns shouldn't jitter as the live values tick. */
+.leaderboard-table td,
+.history-table .hist-dur {
+  font-variant-numeric: tabular-nums;
 }

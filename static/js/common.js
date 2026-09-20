@@ -37,6 +37,22 @@
     return new Date(ts * 1000).toLocaleString();
   }
 
+  // Shorter timestamp for dense table cells: today shows just the time,
+  // this year drops the year, older dates keep it. The full toLocaleString
+  // value belongs in a tooltip next to it (see the history tables).
+  function formatCompactDateTime(ts) {
+    if (!ts) return "-";
+    const d = new Date(ts * 1000);
+    const now = new Date();
+    const time = d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+    const sameDay = d.getFullYear() === now.getFullYear() &&
+      d.getMonth() === now.getMonth() && d.getDate() === now.getDate();
+    if (sameDay) return time;
+    const dateOpts = { month: "short", day: "numeric" };
+    if (d.getFullYear() !== now.getFullYear()) dateOpts.year = "numeric";
+    return `${d.toLocaleDateString(undefined, dateOpts)}, ${time}`;
+  }
+
   async function postJson(url, body = {}) {
     const csrfToken = window.getCsrfToken ? window.getCsrfToken() : "";
     const res = await fetch(url, {
@@ -125,7 +141,15 @@
       s.src = "/static/vendor/chart.umd.min.js" +
         (window.TIMESTAT_STATIC_V ? `?v=${encodeURIComponent(window.TIMESTAT_STATIC_V)}` : "");
       s.async = true;
-      s.onload = () => resolve();
+      s.onload = () => {
+        // Every <canvas> sits in a fixed-height .chart-box (style.css), so
+        // charts fill the box instead of growing to the canvas's own
+        // aspect ratio after load - which shifted everything below them.
+        if (window.Chart && window.Chart.defaults) {
+          window.Chart.defaults.maintainAspectRatio = false;
+        }
+        resolve();
+      };
       s.onerror = () => {
         chartLoadPromise = null;
         reject(new Error("Could not load charts"));
@@ -155,6 +179,7 @@
   window.formatDuration = formatDuration;
   window.formatHours = formatHours;
   window.tsToLocal = tsToLocal;
+  window.formatCompactDateTime = formatCompactDateTime;
   window.postJson = postJson;
   window.renderOrUpdateChart = renderOrUpdateChart;
   window.ensureCharts = ensureCharts;
@@ -162,6 +187,13 @@
   window.cssRgb = cssRgb;
   window.themeColors = themeColors;
   window.MEDALS = ["🥇", "🥈", "🥉"];
+
+  // The single source of truth for "is this a phone-shaped viewport".
+  // 767.98px is the exact complement of Tailwind's `md:` (min-width: 768px),
+  // and style.css's one mobile media query uses the same value - so CSS,
+  // utility classes and JS can never disagree about where mobile ends.
+  window.MOBILE_QUERY = "(max-width: 767.98px)";
+  window.isMobileViewport = () => window.matchMedia(window.MOBILE_QUERY).matches;
 
   // The confirm modal is a page-wide singleton, so only one call can own it
   // at a time. If a second call comes in while one is still open, resolve
@@ -218,7 +250,7 @@
     if (!container) {
       container = document.createElement("div");
       container.id = "appToastContainer";
-      container.className = "fixed bottom-4 left-4 right-4 z-50 flex flex-col items-center gap-2 pointer-events-none";
+      container.className = "fixed app-bottom-float left-4 right-4 z-50 flex flex-col items-center gap-2 pointer-events-none";
       document.body.appendChild(container);
     }
     const toast = document.createElement("div");
@@ -428,6 +460,219 @@
     };
     document.addEventListener("mouseover", prefetchLink, { passive: true });
     document.addEventListener("touchstart", prefetchLink, { passive: true });
+    initMeSheet();
+    initSessionDock();
+  }
+
+  // ---- "Me" sheet -------------------------------------------------------
+  // The fourth tab. Holds everything the old scrolling header strip did:
+  // profile, settings, theme, admin links, sign out.
+  function initMeSheet() {
+    const sheet = document.getElementById("meSheet");
+    const openBtn = document.getElementById("openMeSheetBtn");
+    if (!sheet || !openBtn) return;
+    const panel = sheet.querySelector(".mobile-sheet-panel");
+    let lastFocus = null;
+
+    function focusables() {
+      return Array.from(
+        panel.querySelectorAll('a[href], button:not([disabled])')
+      ).filter((el) => el.offsetParent !== null);
+    }
+
+    function onKeydown(event) {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        close();
+        return;
+      }
+      if (event.key !== "Tab") return;
+      // Same trap as showAppConfirm, over a variable set of items.
+      const items = focusables();
+      if (!items.length) return;
+      const idx = items.indexOf(document.activeElement);
+      const dir = event.shiftKey ? -1 : 1;
+      event.preventDefault();
+      (idx === -1 ? items[0] : items[(idx + dir + items.length) % items.length]).focus();
+    }
+
+    function open() {
+      lastFocus = document.activeElement;
+      sheet.classList.remove("hidden");
+      openBtn.setAttribute("aria-expanded", "true");
+      sheet.addEventListener("keydown", onKeydown);
+      const items = focusables();
+      if (items.length) items[0].focus();
+    }
+
+    function close() {
+      sheet.classList.add("hidden");
+      openBtn.setAttribute("aria-expanded", "false");
+      sheet.removeEventListener("keydown", onKeydown);
+      if (lastFocus && document.contains(lastFocus)) lastFocus.focus();
+      lastFocus = null;
+    }
+
+    openBtn.addEventListener("click", open);
+    document.getElementById("closeMeSheetBtn").addEventListener("click", close);
+    document.getElementById("meSheetBackdrop").addEventListener("click", close);
+
+    // Settings is an existing page-wide modal; hand off to its own opener
+    // rather than reimplementing it.
+    const settingsItem = document.getElementById("meSheetSettings");
+    if (settingsItem) {
+      settingsItem.addEventListener("click", () => {
+        close();
+        const opener = document.getElementById("openSettingsBtn");
+        if (opener) opener.click();
+      });
+    }
+  }
+
+  // ---- Session dock -----------------------------------------------------
+  // A running session is the reason this app gets opened on a phone, but the
+  // timer and its controls used to live only at the top of the dashboard -
+  // scroll down, or switch tabs, and they were gone. This bar keeps them
+  // reachable from every tab, and ticks locally from the last known baseline
+  // so no page outside the dashboard needs an SSE connection.
+  function initSessionDock() {
+    const dock = document.getElementById("sessionDock");
+    if (!dock) return;
+
+    const categoryEl = document.getElementById("sessionDockCategory");
+    const timeEl = document.getElementById("sessionDockTime");
+    const pauseBtn = document.getElementById("sessionDockPause");
+    const resumeBtn = document.getElementById("sessionDockResume");
+    const finishBtn = document.getElementById("sessionDockFinish");
+
+    let session = null;
+    let baselineSeconds = 0;
+    let baselineAt = 0;
+    let trackerVisible = false;
+    let ticker = null;
+
+    const elapsed = () => {
+      if (!session) return 0;
+      if (session.status !== "running") return baselineSeconds;
+      return baselineSeconds + Math.max(0, Math.round((Date.now() - baselineAt) / 1000));
+    };
+
+    function paint() {
+      if (!session) return;
+      categoryEl.textContent = session.category_name || "Session";
+      categoryEl.title = session.note
+        ? `${session.category_name} — ${session.note}`
+        : session.category_name || "";
+      timeEl.textContent = window.formatDuration(elapsed());
+      const running = session.status === "running";
+      pauseBtn.classList.toggle("hidden", !running);
+      resumeBtn.classList.toggle("hidden", running);
+    }
+
+    // The dock is only useful when the real tracker isn't on screen. Pages
+    // without a tracker at all (Team, Stats, profile) always qualify.
+    function shouldShow() {
+      return Boolean(session) && !trackerVisible && window.isMobileViewport();
+    }
+
+    function applyVisibility() {
+      const visible = shouldShow();
+      dock.classList.toggle("is-visible", visible);
+      // Publish the height so .app-shell padding and every .app-bottom-float
+      // overlay move up by exactly as much as the dock occupies.
+      document.documentElement.style.setProperty(
+        "--app-dock-h",
+        visible ? `${dock.offsetHeight}px` : "0px"
+      );
+      if (visible && !ticker) {
+        // Paint immediately: the bar is on screen a whole second before the
+        // first interval fires, and it would show a stale value until then.
+        paint();
+        ticker = setInterval(paint, 1000);
+      } else if (!visible && ticker) {
+        clearInterval(ticker);
+        ticker = null;
+      }
+    }
+
+    // `elapsedSeconds` lets a page that already tracks the running total (the
+    // dashboard, which re-renders every second) hand over its own value. The
+    // payload's elapsed_seconds is only as fresh as the last server response,
+    // so using it on every call would reset the clock back to the start time
+    // once a second and the dock would sit at 00:00:00.
+    function set(next, elapsedSeconds) {
+      session = next || null;
+      if (session) {
+        baselineSeconds = Number(
+          elapsedSeconds === undefined ? session.elapsed_seconds : elapsedSeconds
+        ) || 0;
+        baselineAt = Date.now();
+        paint();
+      }
+      applyVisibility();
+    }
+
+    async function refresh() {
+      try {
+        const res = await fetch("/api/status");
+        if (!res.ok) return;
+        const data = await res.json();
+        set(data.current_session);
+      } catch (_err) {
+        // Offline or a flaky link: keep showing the last known state rather
+        // than blanking a session the user knows is running.
+      }
+    }
+
+    async function act(kind) {
+      // On the dashboard the real control already owns the optimistic update,
+      // the action queue and the confirm prompt - click it instead of running
+      // a second, competing code path against the same session.
+      const delegate = document.getElementById(`${kind}Btn`);
+      if (delegate && !delegate.classList.contains("hidden")) {
+        delegate.click();
+        return;
+      }
+      if (!session) return;
+      try {
+        await window.postJson(`/api/session/${kind}`, { session_id: session.id });
+      } catch (_err) {
+        window.showToast("Could not update the session.", true);
+      }
+      refresh();
+    }
+
+    pauseBtn.addEventListener("click", () => act("pause"));
+    resumeBtn.addEventListener("click", () => act("resume"));
+    finishBtn.addEventListener("click", () => act("finish"));
+
+    const tracker = document.getElementById("sessionTracker");
+    if (tracker && "IntersectionObserver" in window) {
+      trackerVisible = true;
+      new IntersectionObserver((entries) => {
+        trackerVisible = entries[0].isIntersecting;
+        applyVisibility();
+      }, { threshold: 0 }).observe(tracker);
+    }
+
+    window.matchMedia(window.MOBILE_QUERY).addEventListener("change", applyVisibility);
+
+    // A pause or finish on another device leaves this tab's locally-ticking
+    // clock running. Re-check whenever the tab comes back to the foreground.
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible" && window.isMobileViewport()) refresh();
+    });
+
+    window.TimestatDock = { set, refresh };
+
+    // Pages that embed a status payload seed the dock without a round trip;
+    // anything else asks the API once.
+    const seed = window.TIMESTAT_INITIAL_STATUS;
+    if (seed !== undefined) {
+      set(seed);
+    } else {
+      refresh();
+    }
   }
 
   if (document.readyState === "loading") {
