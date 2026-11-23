@@ -894,26 +894,43 @@
   let lastStatsData = null;
   let lastTrendDays = null;
 
+  // Keep the doughnuts readable: the four biggest categories get their own
+  // slice, everything else is summed into a single "Other" slice.
+  function topFourWithOther(rows) {
+    const sorted = [...rows].sort((a, b) => b.seconds - a.seconds);
+    const top = sorted.slice(0, 4);
+    const rest = sorted.slice(4);
+    if (rest.length) {
+      top.push({
+        name: "Other",
+        seconds: rest.reduce((sum, x) => sum + x.seconds, 0)
+      });
+    }
+    return top;
+  }
+
   function applyStats(data, force = false) {
     lastStatsData = data;
     clearChartSectionError("insightsPersonal");
     clearChartSectionError("insightsTeam");
+    const myWeek = topFourWithOther(data.my_categories_week);
     myWeekChart = renderPie(
       myWeekChart,
       "myWeekChart",
-      data.my_categories_week.map(x => x.name),
-      data.my_categories_week.map(x => x.seconds / 3600),
+      myWeek.map(x => x.name),
+      myWeek.map(x => x.seconds / 3600),
       "Your Hours (Last 7 Days)",
       "myWeekEmpty",
       "myWeekTotalHours",
       force
     );
 
+    const teamWeek = topFourWithOther(data.team_categories_week);
     teamWeekChart = renderPie(
       teamWeekChart,
       "teamWeekChart",
-      data.team_categories_week.map(x => x.name),
-      data.team_categories_week.map(x => x.seconds / 3600),
+      teamWeek.map(x => x.name),
+      teamWeek.map(x => x.seconds / 3600),
       "Team Hours (Last 7 Days)",
       "teamWeekEmpty",
       "teamWeekTotalHours",

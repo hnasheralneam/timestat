@@ -126,25 +126,6 @@ header .neu-btn {
   outline-offset: 2px;
 }
 
-/* Contrast: in light themes the accent fills are light/mid tones and
-   near-white label text on them falls below 4.5:1. Darken the fill slightly
-   in light mode only, keeping the light label. Dark mode is unchanged. */
-:root:not(.dark) .neu-btn.bg-gb-green { background-color: color-mix(in srgb, rgb(var(--gb-green-rgb)) 78%, black); }
-:root:not(.dark) .neu-btn.bg-gb-yellow { background-color: color-mix(in srgb, rgb(var(--gb-yellow-rgb)) 78%, black); }
-:root:not(.dark) .neu-btn.bg-gb-aqua { background-color: color-mix(in srgb, rgb(var(--gb-aqua-rgb)) 78%, black); }
-:root:not(.dark) .neu-btn.bg-gb-blue { background-color: color-mix(in srgb, rgb(var(--gb-blue-rgb)) 82%, black); }
-:root:not(.dark) .neu-btn.bg-gb-purple { background-color: color-mix(in srgb, rgb(var(--gb-purple-rgb)) 82%, black); }
-
-/* Exception to the quiet-links rule above: leaderboard user links keep their
-   semantic colors, so the current-user row ("you") stays green and links
-   regain hover color feedback. */
-.leaderboard-table a.text-gb-green,
-.leaderboard-table a.text-gb-green:hover { color: rgb(var(--gb-green-rgb)); }
-.leaderboard-table a.text-gb-purple,
-.leaderboard-table a.text-gb-purple:hover { color: rgb(var(--gb-purple-rgb)); }
-.leaderboard-table a.text-gb-blue,
-.leaderboard-table a.text-gb-blue:hover { color: rgb(var(--gb-blue-rgb)); }
-
 /* Screen-reader-only text (chart data-table alternatives). Also emitted by
    Tailwind when templates use sr-only; this copy guarantees it even if the
    compiled bundle wasn't rebuilt. */
