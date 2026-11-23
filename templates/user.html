@@ -13,31 +13,33 @@
   <section class="lg:col-span-2 neu-surface p-5 min-w-0">
     <h2 class="font-semibold text-lg mb-2 text-gb-fg flex items-center gap-2">
       <span class="material-symbols-rounded" aria-hidden="true">calendar_month</span>
-      Activity Grid (<span id="activityGridRange">Last 20 Weeks</span>)
+      Activity Grid (<span id="activityGridRange">Recent weeks</span>)
     </h2>
     <p class="text-xs text-gb-fg/70 mb-3">GitHub-style daily activity based on completed sessions.</p>
     <div id="activityGrid" class="overflow-x-auto"></div>
     {# Cell tooltips are hover-driven and so say nothing on a touch device.
        Tapping a cell writes its date and hours here instead. #}
     <p id="activityGridCaption" class="mt-2 text-xs text-gb-fg/75 min-h-4" aria-live="polite"></p>
-    <div class="mt-3 flex items-center gap-2 text-xs text-gb-fg/75">
+    <div class="mt-3 flex items-center gap-2 text-xs text-gb-fg/75" aria-label="Activity intensity scale from less to more tracked time">
       <span>Less</span>
-      <span id="activityLegend0" class="w-3 h-3 rounded-sm"></span>
-      <span id="activityLegend1" class="w-3 h-3 rounded-sm"></span>
-      <span id="activityLegend2" class="w-3 h-3 rounded-sm"></span>
-      <span id="activityLegend3" class="w-3 h-3 rounded-sm"></span>
-      <span id="activityLegend4" class="w-3 h-3 rounded-sm"></span>
+      <span id="activityLegend0" class="w-3 h-3 rounded-sm" aria-hidden="true"></span>
+      <span id="activityLegend1" class="w-3 h-3 rounded-sm" aria-hidden="true"></span>
+      <span id="activityLegend2" class="w-3 h-3 rounded-sm" aria-hidden="true"></span>
+      <span id="activityLegend3" class="w-3 h-3 rounded-sm" aria-hidden="true"></span>
+      <span id="activityLegend4" class="w-3 h-3 rounded-sm" aria-hidden="true"></span>
       <span>More</span>
     </div>
     <p id="activityEmpty" class="hidden mt-3 empty-state">No completed-session activity yet.</p>
   </section>
 
   <section class="neu-surface p-5">
-    <h2 class="font-semibold text-lg mb-3 text-gb-fg flex items-center gap-2">
+    <h2 class="font-semibold text-lg mb-1 text-gb-fg flex items-center gap-2">
       <span class="material-symbols-rounded" aria-hidden="true">pie_chart</span>
       Category Breakdown
     </h2>
+    <p class="text-xs text-gb-fg/70 mb-2">Tracked hours split by category.</p>
     <div class="chart-box"><canvas id="categoryChart" role="img" aria-label="Doughnut chart of this user's tracked hours by category"></canvas></div>
+    <p id="categoryChartError" class="hidden mt-3 text-xs text-gb-red">Chart library failed to load; showing data tables only.</p>
     <p id="categoryTotalHours" class="mt-1 text-xs text-gb-fg/70 text-center hidden"></p>
     <p id="categoryEmpty" class="hidden mt-3 empty-state">No session data yet.</p>
   </section>
@@ -49,6 +51,7 @@
     </h2>
     <p class="text-xs text-gb-fg/70 mb-2">Tracked hours per day over the last 14 days.</p>
     <div class="chart-box"><canvas id="dailyTrendChart" role="img" aria-label="Line chart of tracked hours per day over the last 14 days"></canvas></div>
+    <p id="dailyTrendChartError" class="hidden mt-3 text-xs text-gb-red">Chart library failed to load; showing data tables only.</p>
     <p id="dailyTrendEmpty" class="hidden mt-3 empty-state">No activity data yet.</p>
   </section>
 
@@ -59,8 +62,8 @@
       Recent Sessions
       </h2>
       <div class="flex flex-wrap gap-2">
-        <input id="recentSearchInput" class="neu-input text-sm min-w-52" placeholder="Search note or category" data-tooltip="Filter sessions by note or category">
-        <select id="recentCategoryFilter" class="neu-input text-sm min-w-48" data-tooltip="Filter by category">
+        <input id="recentSearchInput" class="neu-input text-sm min-w-52" placeholder="Search note or category" aria-label="Search sessions" data-tooltip="Filter sessions by note or category">
+        <select id="recentCategoryFilter" class="neu-input text-sm min-w-48" aria-label="Filter by category" data-tooltip="Filter by category">
           <option value="">All categories</option>
           {% for category in categories %}
             <option value="{{ category.name }}">{{ category.name }}</option>
@@ -83,16 +86,19 @@
       <div class="grid sm:grid-cols-2 gap-3 mt-3">
         <label class="block relative">
           <span class="text-sm text-gb-fg/85">Category</span>
-          <input type="text" id="editCategoryName" class="mt-1 neu-input" placeholder="Search or select category" autocomplete="off">
-          <ul id="editCategoryDropdown" class="hidden absolute z-50 w-full mt-1 neu-surface border border-gb-bg2 rounded-lg max-h-80 overflow-auto shadow-lg">
+          <input type="text" id="editCategoryName" class="mt-1 neu-input" placeholder="Search or select category" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="editCategoryDropdown" aria-activedescendant="" aria-autocomplete="list" aria-label="Category">
+          <ul id="editCategoryDropdown" class="hidden absolute z-50 w-full mt-1 neu-surface border border-gb-bg2 rounded-lg max-h-80 overflow-auto shadow-lg" role="listbox" aria-label="Categories">
             {% for category in categories %}
-              <li class="edit-category-option px-3 py-2 cursor-pointer hover:bg-gb-bg2 text-gb-fg transition-colors" data-value="{{ category.name }}">{{ category.name }}</li>
+              <li class="edit-category-option activity-option px-3 py-2 cursor-pointer hover:bg-gb-bg2 text-gb-fg transition-colors" role="option" id="editCategoryOption{{ loop.index }}" aria-selected="false" data-value="{{ category.name }}">{{ category.name }}</li>
             {% endfor %}
           </ul>
         </label>
         <label class="block">
-          <span class="text-sm text-gb-fg/85">Note</span>
-          <input id="editNote" maxlength="200" class="mt-1 neu-input" placeholder="Session note">
+          <span class="text-sm text-gb-fg/85 flex items-center justify-between gap-2">
+            <span>Note</span>
+            <span id="editNoteCount" class="text-xs text-gb-fg/50">0 / 200</span>
+          </span>
+          <input id="editNote" maxlength="200" class="mt-1 neu-input" placeholder="Session note" aria-describedby="editNoteCount">
         </label>
       </div>
       <div class="mt-3 flex flex-wrap gap-2">
@@ -112,23 +118,23 @@
       <table class="w-full text-sm history-table">
         <thead class="text-gb-fg/70">
           <tr>
-            <th class="text-left py-2">Category</th>
-            <th class="text-left py-2">Duration</th>
-            <th class="text-left py-2">Note</th>
-            <th class="text-left py-2">Ended</th>
+            <th class="text-left py-2" scope="col">Category</th>
+            <th class="text-left py-2" scope="col">Duration</th>
+            <th class="text-left py-2" scope="col">Note</th>
+            <th class="text-left py-2" scope="col">Ended</th>
             {% if can_delete_sessions %}
-            <th class="text-left py-2">Actions</th>
+            <th class="text-left py-2" scope="col">Actions</th>
             {% endif %}
           </tr>
         </thead>
         <tbody id="recentBody"></tbody>
       </table>
     </div>
-    <p id="recentEmpty" class="hidden mt-3 empty-state">No completed sessions match the current filters.</p>
-    <p id="userProfileMessage" class="mt-2 text-sm text-gb-green"></p>
+    <p id="recentEmpty" class="hidden mt-3 empty-state">No completed sessions yet.</p>
+    <p id="userProfileMessage" class="mt-2 text-sm text-gb-green" role="status" aria-live="polite"></p>
     <div class="mt-3 flex flex-wrap items-center justify-between gap-2">
-      <p id="recentHistoryHint" class="text-xs text-gb-fg/70">Showing 0 of 0 tasks.</p>
-      <button id="loadMoreRecentBtn" class="neu-btn text-sm border border-gb-bg2 bg-gb-bg1 text-gb-fg inline-flex items-center gap-1" type="button" data-tooltip="Load more completed tasks for this user">
+      <p id="recentHistoryHint" class="text-xs text-gb-fg/70">Showing 0 of 0 sessions.</p>
+      <button id="loadMoreRecentBtn" class="neu-btn text-sm border border-gb-bg2 bg-gb-bg1 text-gb-fg inline-flex items-center gap-1" type="button" data-tooltip="Load more completed sessions for this user">
         <span class="material-symbols-rounded" aria-hidden="true">history</span>
         Load more
       </button>
@@ -268,7 +274,7 @@
     }
 
     const monthRow = document.createElement("div");
-    monthRow.className = "flex gap-1 mb-1 ml-8 text-[10px] text-gb-fg/70";
+    monthRow.className = "flex gap-1 mb-1 ml-8 text-[11px] text-gb-fg/70";
     // One label per month. Two adjacent columns can both start on a day <= 7
     // (a padded partial first week followed by the month's first full week),
     // which printed the month name twice in a row - "MayMay" in the header.
@@ -311,15 +317,22 @@
         cell.className = "w-4 h-4 rounded-sm";
         if (day) {
           const localDate = new Date(`${day.date}T00:00:00`).toLocaleDateString();
-          const hours = (day.seconds / 3600).toFixed(2);
+          const hours = window.formatHours(day.seconds);
           cell.style.backgroundColor = activityColor(day.seconds, maxSeconds);
           cell.setAttribute("data-tooltip", `${localDate} — ${hours}h`);
           cell.tabIndex = 0;
           cell.setAttribute("role", "button");
           cell.setAttribute("aria-label", `${localDate} — ${hours}h`);
-          cell.addEventListener("click", () => {
+          const announce = () => {
             const caption = document.getElementById("activityGridCaption");
             if (caption) caption.textContent = `${localDate} — ${hours}h`;
+          };
+          cell.addEventListener("click", announce);
+          cell.addEventListener("keydown", (e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              announce();
+            }
           });
         } else {
           cell.style.backgroundColor = "rgb(var(--gb-bg1-rgb))";
@@ -364,12 +377,29 @@
       },
       options: {
         plugins: {
-          legend: { position: "bottom", labels: { color: textColor } }
+          legend: { position: "bottom", labels: { color: textColor } },
+          tooltip: {
+            backgroundColor: window.cssRgb("--gb-bg0-rgb"),
+            titleColor: textColor,
+            bodyColor: textColor,
+            callbacks: {
+              label: (ctx) => ` ${ctx.label}: ${ctx.parsed.toFixed(2)} h`
+            }
+          }
         }
       },
       force
     });
   }
+
+  // Chart.js failed to load: say so inside the chart cards instead of
+  // leaving the .chart-box permanently blank.
+  function showChartLoadErrors() {
+    document.getElementById("categoryChartError").classList.remove("hidden");
+    document.getElementById("dailyTrendChartError").classList.remove("hidden");
+  }
+
+  let lastEditTriggerBtn = null;
 
   function closeEditPanel() {
     if (!canDeleteSessions) return;
@@ -378,6 +408,12 @@
     document.getElementById("editCategoryName").value = "";
     selectedEditCategory = "";
     document.getElementById("editNote").value = "";
+    updateEditNoteCount();
+    // Return focus to the row's edit button that opened the panel.
+    if (lastEditTriggerBtn) {
+      lastEditTriggerBtn.focus();
+      lastEditTriggerBtn = null;
+    }
   }
 
   function openEditPanel(sessionId) {
@@ -390,7 +426,7 @@
     selectedEditCategory = categoryName;
     document.getElementById("editNote").value = selected.note || "";
     document.getElementById("editSessionPanel").classList.remove("hidden");
-    document.getElementById("editNote").focus();
+    document.getElementById("editCategoryName").focus();
   }
 
   function getRecentFilters() {
@@ -407,9 +443,9 @@
     const { query, category } = getRecentFilters();
     const qualifier = query || category ? "matching" : "total";
     if (!state.recentTotal) {
-      hint.textContent = "No completed tasks yet.";
+      hint.textContent = "No completed sessions yet.";
     } else {
-      hint.textContent = `Showing ${state.recentSessions.length} of ${state.recentTotal} ${qualifier} tasks.`;
+      hint.textContent = `Showing ${state.recentSessions.length} of ${state.recentTotal} ${qualifier} sessions.`;
     }
     btn.classList.toggle("hidden", !state.recentHasMore);
     clearBtn.classList.toggle("hidden", !query && !category);
@@ -440,11 +476,16 @@
     state.lastRenderedRecentJson = serialized;
 
     tbody.innerHTML = "";
+    const emptyEl = document.getElementById("recentEmpty");
     if (!visibleSessions.length) {
-      document.getElementById("recentEmpty").classList.remove("hidden");
+      const { query, category } = getRecentFilters();
+      emptyEl.textContent = (state.recentTotal === 0 && !query && !category)
+        ? "No completed sessions yet."
+        : "No completed sessions match the current filters.";
+      emptyEl.classList.remove("hidden");
       return;
     }
-    document.getElementById("recentEmpty").classList.add("hidden");
+    emptyEl.classList.add("hidden");
     for (const s of visibleSessions) {
       const safeCategoryName = escapeHtml(s.category_name || "");
       const safeNote = escapeHtml(s.note || "");
@@ -452,20 +493,19 @@
       const safeEnd = escapeHtml(tsToLocal(s.end_ts));
       const safeEndCompact = escapeHtml(formatCompactDateTime(s.end_ts));
       const safeDuration = escapeHtml(formatDuration(s.duration_seconds));
-      const safeNoteTitle = safeNote || "No note";
       const tr = document.createElement("tr");
       tr.className = "border-t border-gb-bg2";
       tr.innerHTML = `
         <td class="py-2 hist-cat" data-label="Category">${safeCategoryName}</td>
         <td class="py-2 hist-dur" data-label="Duration" data-tooltip="Started ${safeStart}">${safeDuration}</td>
-        <td class="py-2 hist-note" data-label="Note" data-tooltip="${safeNoteTitle}">${safeNote || "-"}</td>
+        <td class="py-2 hist-note" data-label="Note">${safeNote || "-"}</td>
         <td class="py-2 hist-when" data-label="Ended" data-tooltip="Ended ${safeEnd}">${safeEndCompact}</td>
         ${canDeleteSessions ? `
           <td class="py-2 hist-actions" data-label="Actions">
-            <button class="neu-btn neu-btn-sm border border-gb-bg2 bg-gb-bg1 text-gb-fg inline-flex items-center gap-1 text-xs px-2 py-1 mr-1" data-edit-session-id="${s.id}" type="button" data-tooltip="Edit this completed session">
+            <button class="neu-btn neu-btn-sm border border-gb-bg2 bg-gb-bg1 text-gb-fg inline-flex items-center gap-1 text-xs px-2 py-1 mr-1" data-edit-session-id="${s.id}" type="button" aria-label="Edit session" data-tooltip="Edit this completed session">
               <span class="material-symbols-rounded" aria-hidden="true">edit</span>
             </button>
-            <button class="neu-btn neu-btn-sm bg-gb-red text-gb-bg0 border-gb-red/80 inline-flex items-center gap-1 text-xs px-2 py-1" data-delete-session-id="${s.id}" type="button" data-tooltip="Delete this completed session">
+            <button class="neu-btn neu-btn-sm bg-gb-red text-gb-bg0 border-gb-red/80 inline-flex items-center gap-1 text-xs px-2 py-1" data-delete-session-id="${s.id}" type="button" aria-label="Delete session" data-tooltip="Delete this completed session">
               <span class="material-symbols-rounded" aria-hidden="true">delete</span>
             </button>
           </td>
@@ -477,6 +517,7 @@
       tbody.querySelectorAll("[data-edit-session-id]").forEach((btn) => {
         btn.addEventListener("click", async () => {
           const sessionId = Number(btn.getAttribute("data-edit-session-id"));
+          lastEditTriggerBtn = btn;
           openEditPanel(sessionId);
         });
       });
@@ -526,10 +567,22 @@
       options: {
         scales: {
           x: { ticks: { color: textColor }, grid: { color: gridColor } },
-          y: { beginAtZero: true, ticks: { color: textColor }, grid: { color: gridColor } }
+          y: {
+            beginAtZero: true,
+            ticks: { color: textColor, callback: (value) => `${value}h` },
+            grid: { color: gridColor }
+          }
         },
         plugins: {
-          legend: { display: false }
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: window.cssRgb("--gb-bg0-rgb"),
+            titleColor: textColor,
+            bodyColor: textColor,
+            callbacks: {
+              label: (ctx) => ` ${ctx.parsed.y.toFixed(2)} h`
+            }
+          }
         }
       },
       force
@@ -546,7 +599,7 @@
     recentRequestController = controller;
     if (reset && !state.recentLoadedOnce) {
       const tbody = document.getElementById("recentBody");
-      if (tbody) tbody.innerHTML = `<tr><td colspan="5" class="py-3 text-center text-gb-fg/60 loading-pulse text-sm">Loading…</td></tr>`;
+      if (tbody) tbody.innerHTML = `<tr><td colspan="${canDeleteSessions ? 5 : 4}" class="py-3 text-center text-gb-fg/60 loading-pulse text-sm">Loading…</td></tr>`;
     }
     const offset = reset ? 0 : state.recentSessions.length;
     const params = buildRecentParams(offset);
@@ -574,6 +627,27 @@
   let pageRequestController = null;
   let pageRequestSequence = 0;
 
+  function handlePageLoadError(err) {
+    if (err.name === "AbortError") return;
+    if (err.message === "Unauthorized" || err.message?.includes("Unauthorized")) {
+      window.location.href = "/login";
+      return;
+    }
+    // A failed fetch is not an empty result - show a red error row with a
+    // Retry button (same pattern as weekly_leaderboard.html) instead of the
+    // "no data yet" empty states.
+    const tbody = document.getElementById("recentBody");
+    if (tbody) {
+      const colCount = canDeleteSessions ? 5 : 4;
+      tbody.innerHTML = `<tr><td colspan="${colCount}" class="py-3 text-center text-gb-red text-sm">${escapeHtml(err.message || "Could not load profile data.")} <button type="button" id="profileRetryBtn" class="neu-btn neu-btn-sm border border-gb-red/60 bg-gb-bg1 text-gb-red text-xs px-2 py-1 ml-1" data-tooltip="Reload profile data">Retry</button></td></tr>`;
+      const retryBtn = document.getElementById("profileRetryBtn");
+      if (retryBtn) retryBtn.addEventListener("click", () => {
+        loadPageData().catch((e) => handlePageLoadError(e));
+      });
+    }
+    setMessage(err.message || "Could not load profile data.", true);
+  }
+
   async function loadPageData() {
     // Start the data requests immediately; Chart.js loads in parallel
     // instead of gating them (it only needs to be ready before rendering).
@@ -585,7 +659,12 @@
       fetch(`/api/users/${targetUserId}/stats`, { signal: controller.signal }),
       fetch(`/api/users/${targetUserId}/activity-grid?days=140`, { signal: controller.signal })
     ]);
-    await window.ensureCharts().catch(() => {});
+    let chartsReady = true;
+    try {
+      await window.ensureCharts();
+    } catch (_err) {
+      chartsReady = false;
+    }
     const [statsRes, activityRes] = await fetches;
 
     if (requestSequence !== pageRequestSequence) return;
@@ -595,6 +674,7 @@
 
     if (!statsRes.ok) throw new Error(statsData.error || "Could not load profile stats");
     if (!activityRes.ok) throw new Error(activityData.error || "Could not load activity grid");
+    if (!chartsReady) showChartLoadErrors();
 
     try {
       renderCategoryChart(statsData.categories || []);
@@ -661,8 +741,12 @@
     }
   });
 
-  document.getElementById("loadMoreRecentBtn").addEventListener("click", async () => {
-    if (!state.recentHasMore) return;
+  const loadMoreBtn = document.getElementById("loadMoreRecentBtn");
+  const loadMoreBtnLabel = loadMoreBtn.innerHTML;
+  loadMoreBtn.addEventListener("click", async () => {
+    if (!state.recentHasMore || loadMoreBtn.disabled) return;
+    loadMoreBtn.disabled = true;
+    loadMoreBtn.innerHTML = `<span class="material-symbols-rounded" aria-hidden="true">progress_activity</span> Loading…`;
     try {
       await loadRecent({ reset: false });
     } catch (err) {
@@ -671,6 +755,9 @@
         return;
       }
       setMessage(err.message || "Could not load recent sessions", true);
+    } finally {
+      loadMoreBtn.disabled = false;
+      loadMoreBtn.innerHTML = loadMoreBtnLabel;
     }
   });
 
@@ -679,11 +766,22 @@
       closeEditPanel();
     });
 
-    document.getElementById("saveEditSessionBtn").addEventListener("click", async () => {
+    document.getElementById("editSessionPanel").addEventListener("keydown", (e) => {
+      if (e.key === "Escape") {
+        e.stopPropagation();
+        closeEditPanel();
+      }
+    });
+
+    const saveEditBtn = document.getElementById("saveEditSessionBtn");
+    const saveEditBtnLabel = saveEditBtn.innerHTML;
+    saveEditBtn.addEventListener("click", async () => {
       const sessionId = Number(document.getElementById("editSessionId").value);
       const categoryName = document.getElementById("editCategoryName").value.trim();
       const note = document.getElementById("editNote").value.trim();
-      if (!sessionId) return;
+      if (!sessionId || saveEditBtn.disabled) return;
+      saveEditBtn.disabled = true;
+      saveEditBtn.innerHTML = `<span class="material-symbols-rounded" aria-hidden="true">progress_activity</span> Saving…`;
       try {
         await postJson("/api/session/update", {
           session_id: sessionId,
@@ -699,15 +797,67 @@
           return;
         }
         setMessage(err.message || "Could not update session", true);
+      } finally {
+        saveEditBtn.disabled = false;
+        saveEditBtn.innerHTML = saveEditBtnLabel;
       }
     });
   }
 
-  // Edit category dropdown search functionality
+  // Note character counter for the edit panel (maxlength=200).
+  const editNoteInput = document.getElementById("editNote");
+  const editNoteCount = document.getElementById("editNoteCount");
+  function updateEditNoteCount() {
+    if (editNoteInput && editNoteCount) {
+      editNoteCount.textContent = `${editNoteInput.value.length} / 200`;
+    }
+  }
+  if (editNoteInput) editNoteInput.addEventListener("input", updateEditNoteCount);
+
+  // Edit category dropdown search functionality (combobox pattern mirrored
+  // from dashboard.html's activity dropdown: getVisibleOptions/setActiveOption).
   const editCategoryInput = document.getElementById("editCategoryName");
   const editCategoryDropdown = document.getElementById("editCategoryDropdown");
   const editCategoryOptions = document.querySelectorAll(".edit-category-option");
   let selectedEditCategory = "";
+  let activeEditOptionIndex = -1;
+
+  function getVisibleEditOptions() {
+    return Array.from(editCategoryOptions).filter((opt) => !opt.classList.contains("hidden"));
+  }
+
+  function clearActiveEditOption() {
+    editCategoryOptions.forEach((opt) => {
+      opt.classList.remove("active");
+      opt.removeAttribute("aria-selected");
+    });
+    activeEditOptionIndex = -1;
+    if (editCategoryInput) editCategoryInput.removeAttribute("aria-activedescendant");
+  }
+
+  function setActiveEditOption(index) {
+    const visible = getVisibleEditOptions();
+    if (!visible.length) {
+      clearActiveEditOption();
+      return;
+    }
+    // Wrap around both ends so arrows always cycle through the list.
+    activeEditOptionIndex = ((index % visible.length) + visible.length) % visible.length;
+    const opt = visible[activeEditOptionIndex];
+    editCategoryOptions.forEach((o) => {
+      o.classList.toggle("active", o === opt);
+      if (o === opt) o.setAttribute("aria-selected", "true");
+      else o.removeAttribute("aria-selected");
+    });
+    opt.scrollIntoView({ block: "nearest" });
+    if (editCategoryInput) editCategoryInput.setAttribute("aria-activedescendant", opt.id);
+  }
+
+  function syncEditDropdownAria() {
+    if (editCategoryInput) {
+      editCategoryInput.setAttribute("aria-expanded", String(!editCategoryDropdown.classList.contains("hidden")));
+    }
+  }
 
   function filterEditCategories(query = "") {
     const lowerQuery = query.toLowerCase();
@@ -719,6 +869,8 @@
       if (matches) hasVisible = true;
     });
     editCategoryDropdown.classList.toggle("hidden", !hasVisible || query === selectedEditCategory);
+    setActiveEditOption(0);
+    syncEditDropdownAria();
   }
 
   if (editCategoryInput && editCategoryDropdown) {
@@ -731,17 +883,38 @@
     });
 
     editCategoryInput.addEventListener("keydown", (e) => {
-      if (e.key === "Escape") {
+      const visible = getVisibleEditOptions();
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        if (editCategoryDropdown.classList.contains("hidden")) {
+          filterEditCategories(editCategoryInput.value);
+        } else {
+          setActiveEditOption(activeEditOptionIndex + 1);
+        }
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        if (!editCategoryDropdown.classList.contains("hidden")) {
+          setActiveEditOption(activeEditOptionIndex - 1);
+        }
+      } else if (e.key === "Escape") {
+        // Only close the dropdown here; Escape in the input must not also
+        // close the whole edit panel (the panel listens for Escape too).
+        e.stopPropagation();
         editCategoryDropdown.classList.add("hidden");
         editCategoryInput.value = selectedEditCategory;
+        clearActiveEditOption();
+        syncEditDropdownAria();
       } else if (e.key === "Enter") {
-        editCategoryDropdown.classList.add("hidden");
-        selectedEditCategory = editCategoryInput.value;
-        const firstVisible = Array.from(editCategoryOptions).find(opt => !opt.classList.contains("hidden"));
-        if (firstVisible && firstVisible.getAttribute("data-value").toLowerCase() === editCategoryInput.value.toLowerCase()) {
-          editCategoryInput.value = firstVisible.getAttribute("data-value");
-          selectedEditCategory = editCategoryInput.value;
+        e.preventDefault();
+        // Choose the highlighted option, falling back to the top match.
+        const chosen = visible[activeEditOptionIndex] || visible[0];
+        if (chosen) {
+          editCategoryInput.value = chosen.getAttribute("data-value");
         }
+        selectedEditCategory = editCategoryInput.value;
+        editCategoryDropdown.classList.add("hidden");
+        clearActiveEditOption();
+        syncEditDropdownAria();
       }
     });
 
@@ -750,6 +923,12 @@
         editCategoryInput.value = option.getAttribute("data-value");
         selectedEditCategory = editCategoryInput.value;
         editCategoryDropdown.classList.add("hidden");
+        clearActiveEditOption();
+        syncEditDropdownAria();
+      });
+      option.addEventListener("mouseover", () => {
+        const index = getVisibleEditOptions().indexOf(option);
+        if (index >= 0) setActiveEditOption(index);
       });
     });
 
@@ -759,6 +938,8 @@
         if (!editCategoryInput.value) {
           editCategoryInput.value = selectedEditCategory;
         }
+        clearActiveEditOption();
+        syncEditDropdownAria();
       }
     });
   }
@@ -794,7 +975,9 @@
     state.activityMaxSeconds = initialData.grid.max_seconds || 0;
     paintActivityLegend();
     renderActivityGrid(state.activityDays, state.activityMaxSeconds);
-    window.ensureCharts().catch(() => {}).then(() => {
+    window.ensureCharts().catch(() => {
+      showChartLoadErrors();
+    }).then(() => {
       renderCategoryChart(initialData.stats.categories || []);
       renderDailyTrend(state.activityDays.slice(-14));
     });
@@ -812,17 +995,7 @@
         console.error("Profile seed failed; falling back to fetch", err);
       }
     }
-    loadPageData().catch(async (err) => {
-      if (err.name === "AbortError") return;
-      if (err.message === "Unauthorized" || err.message?.includes("Unauthorized")) {
-        window.location.href = "/login";
-        return;
-      }
-      document.getElementById("activityEmpty").classList.remove("hidden");
-      document.getElementById("categoryEmpty").classList.remove("hidden");
-      document.getElementById("dailyTrendEmpty").classList.remove("hidden");
-      document.getElementById("recentEmpty").classList.remove("hidden");
-    });
+    loadPageData().catch((err) => handlePageLoadError(err));
   });
 </script>
 {% endblock %}

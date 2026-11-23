@@ -8,6 +8,12 @@
     <h2 class="font-semibold text-lg mb-3 text-gb-fg flex items-center gap-2">
       <span class="material-symbols-rounded" aria-hidden="true">military_tech</span>
       Live Leaderboard (All Time)
+      <span class="ml-auto flex items-center gap-2 text-xs font-normal text-gb-fg/60">
+        <span id="allTimeLastUpdated" class="hidden" aria-live="polite"></span>
+        <button id="allTimeRefreshBtn" type="button" class="neu-btn neu-btn-sm border border-gb-bg2 bg-gb-bg1 text-gb-fg p-1 inline-flex items-center justify-center" aria-label="Refresh all-time stats now" data-tooltip="Refresh now">
+          <span class="material-symbols-rounded" aria-hidden="true">refresh</span>
+        </button>
+      </span>
     </h2>
     {# On mobile style.css drops the max-height: a scroller nested inside the
        page scroll is a trap on touch. #}
@@ -15,9 +21,9 @@
       <table class="leaderboard-table">
         <thead class="text-gb-fg/70">
           <tr>
-            <th class="text-left py-2">Rank</th>
-            <th class="text-left py-2">User</th>
-            <th class="text-right py-2">Hours</th>
+            <th class="text-left py-2" scope="col">Rank</th>
+            <th class="text-left py-2" scope="col">User</th>
+            <th class="text-right py-2" scope="col">Hours</th>
           </tr>
         </thead>
         <tbody id="leaderboardBody"></tbody>
@@ -32,6 +38,7 @@
       My Time Breakdown (All Time)
     </h2>
     <div class="chart-box"><canvas id="myChart" role="img" aria-label="Doughnut chart of your all-time tracked hours by category"></canvas></div>
+    <p id="myChartError" class="hidden mt-3 text-sm text-gb-red text-center" role="alert"></p>
     <p id="myChartTotalHours" class="mt-1 text-xs text-gb-fg/70 text-center hidden"></p>
     <p id="myChartEmpty" class="empty-state hidden mt-3">No personal all-time data yet.</p>
   </section>
@@ -42,6 +49,7 @@
       Team Time Breakdown (All Time)
     </h2>
     <div class="chart-box"><canvas id="teamChart" role="img" aria-label="Doughnut chart of team all-time tracked hours by category"></canvas></div>
+    <p id="teamChartError" class="hidden mt-3 text-sm text-gb-red text-center" role="alert"></p>
     <p id="teamChartTotalHours" class="mt-1 text-xs text-gb-fg/70 text-center hidden"></p>
     <p id="teamChartEmpty" class="empty-state hidden mt-3">No team all-time data yet.</p>
   </section>
@@ -56,6 +64,27 @@
 
   let leaderboardLoadedOnce = false;
   let lastLeaderboardJson = null;
+
+  // Shown near the heading so users can tell the polled data actually refreshed.
+  function updateLastUpdated() {
+    const el = document.getElementById("allTimeLastUpdated");
+    el.textContent = `Live • updated ${new Date().toLocaleTimeString()}`;
+    el.classList.remove("hidden");
+  }
+  // Chart load/render failures and stats fetch errors are shown as red error
+  // text in the chart section - the muted .empty-state stays reserved for
+  // genuine "no data yet" results.
+  function showChartError(errorId, canvasId, message) {
+    const errEl = document.getElementById(errorId);
+    errEl.textContent = message;
+    errEl.classList.remove("hidden");
+    const box = document.getElementById(canvasId).parentElement;
+    box.classList.add("hidden");
+  }
+  function hideChartError(errorId, canvasId) {
+    document.getElementById(errorId).classList.add("hidden");
+    document.getElementById(canvasId).parentElement.classList.remove("hidden");
+  }
 
   // Renders one /api/leaderboard-shaped payload (also what the server
   // embeds as initialData.leaderboard).
@@ -79,14 +108,13 @@
       const medal = medals[row.rank - 1] || "";
       if (isMe) tr.classList.add("font-semibold");
       tr.innerHTML = `
-        <td>${medal ? `<span aria-label="Rank ${row.rank}">${medal}</span>` : `<span class="text-gb-fg/60">#${row.rank}</span>`}</td>
+        <td>${medal ? `<span role="img" aria-label="Rank ${row.rank}">${medal}</span>` : `<span class="text-gb-fg/60">#${row.rank}</span>`}</td>
         <td>
-          <a href="/users/${row.user_id}" class="inline-flex items-center gap-1 font-medium ${isMe ? "text-gb-green" : "text-gb-blue hover:text-gb-purple"}" data-tooltip="${isMe ? "You" : `View ${escapeHtml(row.username)}'s profile`}">
-            <span class="material-symbols-rounded" aria-hidden="true">person</span>
+          <a href="/users/${row.user_id}" class="font-medium ${isMe ? "leaderboard-you text-gb-green font-semibold hover:text-gb-purple" : "text-gb-blue hover:text-gb-purple"}" data-tooltip="${isMe ? "You" : `View ${escapeHtml(row.username)}'s profile`}">
             ${escapeHtml(row.username)}${isMe ? " (you)" : ""}
           </a>
         </td>
-        <td class="text-right" data-tooltip="${row.seconds} seconds total">${formatHours(row.seconds)}</td>
+        <td class="text-right" data-tooltip="${formatDuration(row.seconds)} (${formatHours(row.seconds)} h) total">${formatHours(row.seconds)}</td>
       `;
       tbody.appendChild(tr);
     }
@@ -108,6 +136,7 @@
       if (!res.ok) throw new Error(data.error || "Could not load leaderboard");
       leaderboardLoadedOnce = true;
       applyLeaderboard(data);
+      updateLastUpdated();
     } catch (err) {
       // Surface the failure instead of leaving the pulsing "Loading…" row (or
       // a stale table) up forever with zero indication anything went wrong.
@@ -123,13 +152,23 @@
 
   function renderPie(chartRef, canvasId, labels, values, title, emptyId, totalEl, force = false) {
     const empty = document.getElementById(emptyId);
+    const errorId = `${canvasId}Error`;
     if (totalEl) document.getElementById(totalEl).classList.add("hidden");
+    // Chart.js failed to load: say so in the chart section instead of a blank box.
+    if (typeof window.Chart === "undefined") {
+      if (chartRef) chartRef.destroy();
+      empty.classList.add("hidden");
+      showChartError(errorId, canvasId, "Chart library failed to load.");
+      return null;
+    }
     if (!labels.length) {
       if (chartRef) chartRef.destroy();
+      hideChartError(errorId, canvasId);
       empty.classList.remove("hidden");
       return null;
     }
     empty.classList.add("hidden");
+    hideChartError(errorId, canvasId);
     const ctx = document.getElementById(canvasId);
     const textColor = window.cssRgb("--gb-fg-rgb");
     if (totalEl) {
@@ -150,7 +189,17 @@
       options: {
         // Desktop-only: the title repeats the section heading and steals height
         // the ring needs once the bottom legend wraps on a narrow screen.
-        plugins: { legend: { position: "bottom", labels: { color: textColor } }, title: { display: !window.isMobileViewport(), text: title, color: textColor } }
+        plugins: {
+          legend: { position: "bottom", labels: { color: textColor } },
+          title: { display: !window.isMobileViewport(), text: title, color: textColor },
+          tooltip: {
+            backgroundColor: window.cssRgb("--gb-bg0-rgb"),
+            titleColor: window.cssRgb("--gb-fg-rgb"),
+            bodyColor: window.cssRgb("--gb-fg-rgb"),
+            borderColor: window.cssRgb("--gb-bg2-rgb"),
+            borderWidth: 1
+          }
+        }
       },
       force
     });
@@ -201,13 +250,15 @@
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Could not load stats");
       applyStats(data);
+      updateLastUpdated();
     } catch (err) {
-      [[myChart, "myChartEmpty", "myChartTotalHours"], [teamChart, "teamChartEmpty", "teamChartTotalHours"]]
-        .forEach(([chart, emptyId, totalId]) => {
+      // A failed fetch is not "no data": render it as red error text in each
+      // chart section and keep the muted .empty-state for genuine empty data.
+      [[myChart, "myChart", "myChartEmpty", "myChartTotalHours"], [teamChart, "teamChart", "teamChartEmpty", "teamChartTotalHours"]]
+        .forEach(([chart, canvasId, emptyId, totalId]) => {
           if (chart) chart.destroy();
-          const empty = document.getElementById(emptyId);
-          empty.textContent = err.message || "Could not load stats.";
-          empty.classList.remove("hidden");
+          document.getElementById(emptyId).classList.add("hidden");
+          showChartError(`${canvasId}Error`, canvasId, err.message || "Could not load stats.");
           document.getElementById(totalId).classList.add("hidden");
         });
       myChart = null;
@@ -250,6 +301,10 @@
   setInterval(scheduledRefresh, slowConnection ? 300000 : 120000);
   document.addEventListener("visibilitychange", () => {
     if (!document.hidden) scheduledRefresh();
+  });
+
+  document.getElementById("allTimeRefreshBtn").addEventListener("click", () => {
+    guardedRefresh();
   });
 
   // common.js is deferred (see base.html); wait for DOMContentLoaded so the

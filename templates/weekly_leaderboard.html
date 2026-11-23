@@ -8,15 +8,21 @@
     <h2 class="font-semibold text-lg mb-3 text-gb-fg flex items-center gap-2">
       <span class="material-symbols-rounded" aria-hidden="true">calendar_month</span>
       Full Weekly Rankings
+      <span class="ml-auto flex items-center gap-2 text-xs font-normal text-gb-fg/60">
+        <span id="weeklyLastUpdated" class="hidden" aria-live="polite"></span>
+        <button id="weeklyRefreshBtn" type="button" class="neu-btn neu-btn-sm border border-gb-bg2 bg-gb-bg1 text-gb-fg p-1 inline-flex items-center justify-center" aria-label="Refresh weekly leaderboard now" data-tooltip="Refresh now">
+          <span class="material-symbols-rounded" aria-hidden="true">refresh</span>
+        </button>
+      </span>
     </h2>
     <p id="weekRangeLabel" class="text-xs text-gb-fg/70 mb-2">Last 7 days</p>
     <div class="overflow-auto">
       <table class="leaderboard-table">
         <thead class="text-gb-fg/70">
           <tr>
-            <th class="text-left">#</th>
-            <th class="text-left">User</th>
-            <th class="text-right">Hours</th>
+            <th class="text-left" scope="col">#</th>
+            <th class="text-left" scope="col">User</th>
+            <th class="text-right" scope="col">Hours</th>
           </tr>
         </thead>
         <tbody id="weeklyLeaderboardBody"></tbody>
@@ -31,6 +37,7 @@
       Hours This Week
     </h2>
     <div class="chart-box"><canvas id="weeklyBarChart" role="img" aria-label="Bar chart of hours tracked this week per user"></canvas></div>
+    <p id="weeklyBarChartError" class="hidden mt-3 text-sm text-gb-red text-center" role="alert"></p>
     <p id="weeklyBarEmpty" class="empty-state hidden mt-3">No weekly tracked sessions yet.</p>
   </section>
 </div>
@@ -43,6 +50,24 @@
 
   function formatShortDate(ts) {
     return new Date(ts * 1000).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+  }
+  // Shown near the heading so users can tell the polled data actually refreshed.
+  function updateLastUpdated() {
+    const el = document.getElementById("weeklyLastUpdated");
+    el.textContent = `Live • updated ${new Date().toLocaleTimeString()}`;
+    el.classList.remove("hidden");
+  }
+  // When Chart.js fails to load, say so inside the chart section instead of
+  // leaving a blank .chart-box.
+  function showWeeklyChartError(message) {
+    const errEl = document.getElementById("weeklyBarChartError");
+    errEl.textContent = message;
+    errEl.classList.remove("hidden");
+    document.getElementById("weeklyBarChart").parentElement.classList.add("hidden");
+  }
+  function hideWeeklyChartError() {
+    document.getElementById("weeklyBarChartError").classList.add("hidden");
+    document.getElementById("weeklyBarChart").parentElement.classList.remove("hidden");
   }
   let barChart = null;
   let weeklyLeaderboardLoadedOnce = false;
@@ -57,6 +82,11 @@
   // no-op skip (it otherwise only redraws when labels/values change).
   function repaintBarChart(force = false) {
     if (!lastLeaderboardRows || !lastLeaderboardRows.length) return;
+    if (typeof window.Chart === "undefined") {
+      showWeeklyChartError("Chart library failed to load - showing table data only.");
+      return;
+    }
+    hideWeeklyChartError();
     // One horizontal bar per user inside the shared 16rem .chart-box means the
     // rows get thinner as the team grows, and on a phone they're unreadable
     // well before that. Give the box a height that follows the row count.
@@ -92,7 +122,14 @@
           y: { ticks: { color: textColor }, grid: { color: "transparent" } }
         },
         plugins: {
-          legend: { display: false }
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: window.cssRgb("--gb-bg0-rgb"),
+            titleColor: window.cssRgb("--gb-fg-rgb"),
+            bodyColor: window.cssRgb("--gb-fg-rgb"),
+            borderColor: window.cssRgb("--gb-bg2-rgb"),
+            borderWidth: 1
+          }
         }
       },
       force
@@ -107,7 +144,8 @@
     const empty = document.getElementById("weeklyLeaderboardEmpty");
     const barEmpty = document.getElementById("weeklyBarEmpty");
     const range = document.getElementById("weekRangeLabel");
-    range.textContent = data.since_ts ? `${formatShortDate(data.since_ts)} - ${formatShortDate(data.server_ts)} (Last 7 days)` : "Last 7 days";
+    range.textContent = data.since_ts ? `${formatShortDate(data.since_ts)} - ${formatShortDate(data.server_ts)}` : "Last 7 days";
+    updateLastUpdated();
 
     if (!data.leaderboard.length) {
       empty.textContent = "No weekly tracked sessions yet.";
@@ -137,13 +175,13 @@
         const medals = Array.isArray(window.MEDALS) ? window.MEDALS : [];
         const medal = medals[row.rank - 1] || "";
         tr.innerHTML = `
-          <td>${medal ? `<span aria-label="Rank ${row.rank}">${medal}</span>` : `<span class="text-gb-fg/60">${row.rank}</span>`}</td>
+          <td>${medal ? `<span role="img" aria-label="Rank ${row.rank}">${medal}</span>` : `<span class="text-gb-fg/60">#${row.rank}</span>`}</td>
           <td>
-            <a href="/users/${row.user_id}" class="font-medium ${isMe ? "text-gb-green" : "text-gb-blue hover:text-gb-purple"}" data-tooltip="${isMe ? "You" : `View ${escapeHtml(row.username)}'s profile`}">
+            <a href="/users/${row.user_id}" class="font-medium ${isMe ? "leaderboard-you text-gb-green font-semibold hover:text-gb-purple" : "text-gb-blue hover:text-gb-purple"}" data-tooltip="${isMe ? "You" : `View ${escapeHtml(row.username)}'s profile`}">
               ${escapeHtml(row.username)}${isMe ? " (you)" : ""}
             </a>
           </td>
-          <td class="text-right" data-tooltip="${row.seconds} seconds total">${formatHours(row.seconds)}</td>
+          <td class="text-right" data-tooltip="${formatDuration(row.seconds)} (${formatHours(row.seconds)} h) total">${formatHours(row.seconds)}</td>
         `;
         tbody.appendChild(tr);
       }
@@ -227,6 +265,10 @@
   setInterval(scheduledWeeklyRefresh, weeklySlowConnection ? 300000 : 180000);
   document.addEventListener("visibilitychange", () => {
     if (!document.hidden) scheduledWeeklyRefresh();
+  });
+
+  document.getElementById("weeklyRefreshBtn").addEventListener("click", () => {
+    guardedWeeklyRefresh();
   });
 
   // common.js is deferred (see base.html); wait for DOMContentLoaded so the
