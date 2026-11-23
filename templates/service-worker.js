@@ -5,7 +5,8 @@
 //     refreshes in the background). Keeps the app usable offline / on flaky
 //     networks and loads fast on repeat visits.
 //   * Navigation (HTML document) requests -> network-first, falling back to a
-//     cached copy of the dashboard shell so a reload while offline still works.
+//     cached copy of the requested page, then the cached /login shell, so a
+//     reload while offline still works without redirect loops.
 //   * Everything else (API, SSE, auth POSTs) -> passthrough; never cached.
 //
 // CACHE_VERSION is the server-computed content hash of the static directory
@@ -88,7 +89,10 @@ self.addEventListener("fetch", (event) => {
           return fresh;
         } catch (_err) {
           const cached = await caches.match(request);
-            return cached || (await caches.match("/dashboard")) || Response.error();
+          // Offline navigation falls back to the cached login page, never
+          // /dashboard: when signed out /dashboard redirects to /login, so
+          // serving it here would loop the redirect forever.
+          return cached || (await caches.match("/login")) || Response.error();
         }
       })()
     );

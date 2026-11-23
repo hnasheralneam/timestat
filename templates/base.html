@@ -87,7 +87,7 @@
      start from a DOMContentLoaded listener, not at parse time. #}
   <script src="{{ static_v('js/common.js') }}" defer onerror="window.__timestatCommonLoadFailed = true;"></script>
 </head>
-<body class="min-h-screen{% if user %} has-tabbar{% endif %}">
+<body class="min-h-screen{% if user or is_admin %} has-tabbar{% endif %}">
   <div class="app-shell max-w-6xl mx-auto px-4 py-6">
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}
@@ -315,16 +315,18 @@
     {% endblock %}
   </div>
 
-  {% if user %}
+  {% if user or is_admin %}
   {# ---- Mobile app shell -------------------------------------------------
      The tab bar replaces the header's horizontally-scrolling icon strip below
      768px. Every tab carries a visible text label: the strip's only labels
      were `data-tooltip`s, and tooltips are pointer-driven, so those controls
-     were effectively unlabelled on any touch device.
+     were effectively unlabelled on any touch device. Admin sessions get the
+     same shell (Admin / Analytics tabs) instead of an unlabelled icon strip.
 
      These live outside .app-shell on purpose - `position: fixed` inside a
      padded container that sets `overflow-x` is a trap.
      ---------------------------------------------------------------------- #}
+  {% if user %}
   <script>
     {# Every logged-in page now embeds a status payload (routes/pages.py), so the
        dock paints the running session on first frame instead of after a fetch.
@@ -332,7 +334,9 @@
     {% set _status = initial_data.get('status') if initial_data is defined and initial_data else None %}
     window.TIMESTAT_INITIAL_STATUS = {{ (_status.get('current_session') if _status else None)|tojson }};
   </script>
+  {% endif %}
 
+  {% if user %}
   <div id="sessionDock" class="session-dock" aria-live="off">
     <div class="session-dock-info">
       <div id="sessionDockCategory" class="session-dock-cat"></div>
@@ -350,8 +354,10 @@
       </button>
     </div>
   </div>
+  {% endif %}
 
   <nav class="mobile-tabbar" aria-label="Main">
+    {% if user %}
     <a href="{{ url_for('dashboard') }}" class="mobile-tab" {% if active_page == 'dashboard' %}aria-current="page"{% endif %}>
       <span class="material-symbols-rounded" aria-hidden="true">timer</span>
       <span>Track</span>
@@ -368,12 +374,27 @@
       <span class="material-symbols-rounded" aria-hidden="true">person</span>
       <span>Me</span>
     </button>
+    {% else %}
+    <a href="{{ url_for('admin_dashboard') }}" class="mobile-tab" {% if active_page == 'admin_dashboard' %}aria-current="page"{% endif %}>
+      <span class="material-symbols-rounded" aria-hidden="true">admin_panel_settings</span>
+      <span>Admin</span>
+    </a>
+    <a href="{{ url_for('admin_analytics') }}" class="mobile-tab" {% if active_page == 'admin_analytics' %}aria-current="page"{% endif %}>
+      <span class="material-symbols-rounded" aria-hidden="true">analytics</span>
+      <span>Analytics</span>
+    </a>
+    <button id="openMeSheetBtn" class="mobile-tab" type="button" aria-haspopup="dialog" aria-expanded="false">
+      <span class="material-symbols-rounded" aria-hidden="true">menu</span>
+      <span>More</span>
+    </button>
+    {% endif %}
   </nav>
 
   {# Absorbs everything else the old icon strip held. #}
   <div id="meSheet" class="mobile-sheet hidden">
     <div id="meSheetBackdrop" class="mobile-sheet-backdrop bg-gb-bg0/60 backdrop-blur-sm"></div>
     <div class="mobile-sheet-panel neu-surface" role="dialog" aria-modal="true" aria-label="Account menu">
+      {% if user %}
       <a href="{{ url_for('user_profile', user_id=user.id) }}" class="mobile-sheet-item">
         <span class="material-symbols-rounded" aria-hidden="true">person_outline</span>
         My profile
@@ -382,11 +403,12 @@
         <span class="material-symbols-rounded" aria-hidden="true">manage_accounts</span>
         Settings
       </button>
+      {% endif %}
       <button class="mobile-sheet-item theme-toggle" type="button">
         <span class="material-symbols-rounded" aria-hidden="true">dark_mode</span>
         Switch theme
       </button>
-      {% if is_admin %}
+      {% if is_admin and user %}
       <a href="{{ url_for('admin_dashboard') }}" class="mobile-sheet-item">
         <span class="material-symbols-rounded" aria-hidden="true">admin_panel_settings</span>
         Admin dashboard
@@ -396,12 +418,21 @@
         Team analytics
       </a>
       {% endif %}
+      {% if user %}
       <form action="{{ url_for('logout') }}" method="post">
         <button class="mobile-sheet-item text-gb-red" type="submit">
           <span class="material-symbols-rounded" aria-hidden="true">logout</span>
           Sign out
         </button>
       </form>
+      {% elif is_admin %}
+      <form action="{{ url_for('admin_logout') }}" method="post">
+        <button class="mobile-sheet-item text-gb-red" type="submit">
+          <span class="material-symbols-rounded" aria-hidden="true">logout</span>
+          Admin sign out
+        </button>
+      </form>
+      {% endif %}
     </div>
   </div>
   {% endif %}

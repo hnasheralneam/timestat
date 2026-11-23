@@ -15,13 +15,13 @@
       <label class="block md:col-span-1 relative">
         <span class="text-sm text-gb-fg/85">Activity</span>
         <div class="relative mt-1">
-          <input type="text" id="categoryId" class="neu-input pr-9" placeholder="Search or select activity" autocomplete="off" data-tooltip="Select the activity that most matches your task">
-          <button type="button" id="clearActivityBtn" class="hidden absolute inset-y-0 right-2 flex items-center text-gb-fg/50 hover:text-gb-red transition-colors" aria-label="Clear activity" data-tooltip="Clear the selected activity">
+          <input type="text" id="categoryId" class="neu-input pr-9" role="combobox" aria-expanded="false" aria-controls="activityDropdown" aria-autocomplete="list" placeholder="Search or select activity" autocomplete="off" data-tooltip="Select the activity that most matches your task">
+          <button type="button" id="clearActivityBtn" class="hidden absolute inset-y-0 right-2 flex items-center text-gb-fg/70 hover:text-gb-red transition-colors" aria-label="Clear activity" data-tooltip="Clear the selected activity">
             <span class="material-symbols-rounded text-lg" aria-hidden="true">close</span>
           </button>
-          <ul id="activityDropdown" class="hidden absolute z-50 w-full mt-1 neu-surface border border-gb-bg2 rounded-lg max-h-80 overflow-auto shadow-lg">
+          <ul id="activityDropdown" class="hidden absolute z-50 w-full mt-1 neu-surface border border-gb-bg2 rounded-lg max-h-80 overflow-auto shadow-lg" role="listbox" aria-label="Activities">
             {% for category in categories %}
-              <li class="activity-option px-3 py-2 cursor-pointer hover:bg-gb-bg2 text-gb-fg transition-colors" data-value="{{ category.name }}">{{ category.name }}</li>
+              <li class="activity-option px-3 py-2 cursor-pointer hover:bg-gb-bg2 text-gb-fg transition-colors" role="option" id="activity-option-{{ loop.index }}" data-value="{{ category.name }}">{{ category.name }}</li>
             {% endfor %}
           </ul>
         </div>
@@ -183,7 +183,7 @@
       </div>
     </div>
 
-    <div id="editSessionPanel" class="hidden mb-4 neu-inset p-4">
+    <div id="editSessionPanel" class="hidden mb-4 neu-inset p-4" role="dialog" aria-label="Edit completed session">
       <h3 class="font-medium text-gb-fg flex items-center gap-2">
         <span class="material-symbols-rounded" aria-hidden="true">edit</span>
         Edit Completed Session
@@ -219,22 +219,22 @@
       <table class="w-full text-sm history-table">
         <thead class="text-gb-fg/70">
           <tr>
-            <th class="text-left py-2">Category</th>
-            <th class="text-left py-2">Duration</th>
-            <th class="text-left py-2">Note</th>
-            <th class="text-left py-2">Ended</th>
-            <th class="text-left py-2">Actions</th>
+            <th class="text-left py-2" scope="col">Category</th>
+            <th class="text-left py-2" scope="col">Duration</th>
+            <th class="text-left py-2" scope="col">Note</th>
+            <th class="text-left py-2" scope="col">Ended</th>
+            <th class="text-left py-2" scope="col">Actions</th>
           </tr>
         </thead>
         <tbody id="recentBody"></tbody>
       </table>
     </div>
-    <p id="recentEmpty" class="empty-state hidden mt-3">No recent sessions match your filters.</p>
+    <p id="recentEmpty" class="empty-state hidden mt-3">No completed sessions yet.</p>
     <div class="history-footer mt-3 flex flex-wrap items-center justify-between gap-2">
-      <p id="recentHistoryHint" class="text-xs text-gb-fg/70">Showing 0 of 0 tasks.</p>
-      <button id="loadMoreRecentBtn" class="neu-btn text-sm border border-gb-bg2 bg-gb-bg1 text-gb-fg inline-flex items-center justify-center gap-1" type="button" data-tooltip="Load more completed tasks">
+      <p id="recentHistoryHint" class="text-xs text-gb-fg/70">Showing 0 of 0 sessions.</p>
+      <button id="loadMoreRecentBtn" class="neu-btn text-sm border border-gb-bg2 bg-gb-bg1 text-gb-fg inline-flex items-center justify-center gap-1" type="button" data-tooltip="Load more completed sessions">
         <span class="material-symbols-rounded" aria-hidden="true">history</span>
-        Load more
+        <span id="loadMoreRecentLabel">Load more</span>
       </button>
     </div>
   </section>
@@ -306,6 +306,9 @@
     toast.querySelector("span.flex-1").textContent = text;
     toast.querySelector("button").addEventListener("click", () => toast.remove());
     host.appendChild(toast);
+    // Cap the stack at 3; the auto-dismiss timeout removes them anyway, but
+    // on a busy team they'd otherwise pile up faster than they expire.
+    while (host.children.length > 3) host.firstChild.remove();
     setTimeout(() => {
       toast.remove();
     }, 5500);
@@ -377,13 +380,17 @@
       showReduce = true;
     }
 
-    start.disabled = !showStart;
-    pause.disabled = !showPause;
-    resume.disabled = !showResume;
-    finish.disabled = !showFinish;
-    cancel.disabled = !showCancel;
-    reduce10.disabled = !showReduce;
-    reduce30.disabled = !showReduce;
+    // While a session action is in flight every action button is disabled,
+    // not just hidden-logic - otherwise a double-click can queue two
+    // mutations against the same session.
+    const busy = state.actionBusy;
+    start.disabled = busy || !showStart;
+    pause.disabled = busy || !showPause;
+    resume.disabled = busy || !showResume;
+    finish.disabled = busy || !showFinish;
+    cancel.disabled = busy || !showCancel;
+    reduce10.disabled = busy || !showReduce;
+    reduce30.disabled = busy || !showReduce;
 
     start.classList.toggle("hidden", !showStart);
     pause.classList.toggle("hidden", !showPause);
@@ -392,6 +399,16 @@
     cancel.classList.toggle("hidden", !showCancel);
     reduce10.classList.toggle("hidden", !showReduce);
     reduce30.classList.toggle("hidden", !showReduce);
+
+    // Hiding the button that currently holds focus would drop focus to
+    // <body> (e.g. Start after starting, Finish after finishing). Move it
+    // to the newly visible primary control instead.
+    const actionButtons = [start, pause, resume, finish, cancel, reduce10, reduce30];
+    const active = document.activeElement;
+    if (active && actionButtons.includes(active) && active.classList.contains("hidden")) {
+      const target = showStart ? start : (showPause ? pause : resume);
+      if (target) target.focus();
+    }
   }
 
   // Persisted so a reload/tab-close while something is queued doesn't
@@ -515,8 +532,20 @@
     }
   }
 
+  // An optimistic start has id: null until the server confirms it; sending
+  // session_id: null would target the wrong session (or none). No-op with a
+  // hint instead - the real id arrives with the action's own response.
+  function requireConfirmedSession() {
+    if (!state.current) return false;
+    if (state.current.id == null) {
+      setMessage("Session is still starting — try again in a moment.", true);
+      return false;
+    }
+    return true;
+  }
+
   async function adjustSession(seconds, label) {
-    if (!state.current) return;
+    if (!requireConfirmedSession()) return;
     await performSessionAction("/api/session/adjust", { seconds, session_id: state.current.id }, {
       optimistic: () => {
         setTimer(currentElapsed() - seconds);
@@ -669,6 +698,16 @@
   let weeklyRequestController = null;
   let weeklyRequestSequence = 0;
 
+  // A failed load must not leave the "Loading…" row (or a stale table) in
+  // place forever - swap in an error row whose Retry button re-runs the load.
+  function renderLeaderboardError() {
+    const tbody = document.getElementById("weeklyLeaderboardBody");
+    tbody.innerHTML = `<tr><td colspan="3" class="py-3 text-center text-sm text-gb-red">Could not load the leaderboard. <button type="button" id="retryLeaderboardBtn" class="neu-btn neu-btn-sm border border-gb-bg2 bg-gb-bg1 text-gb-fg text-xs px-2 py-1 ml-1" data-tooltip="Reload the weekly leaderboard">Retry</button></td></tr>`;
+    document.getElementById("retryLeaderboardBtn").addEventListener("click", () => {
+      loadWeeklyLeaderboard().catch(() => {});
+    });
+  }
+
   async function loadWeeklyLeaderboard() {
     const requestSequence = ++weeklyRequestSequence;
     if (weeklyRequestController) weeklyRequestController.abort();
@@ -686,7 +725,9 @@
       state.weeklyLeaderboardLoaded = true;
       applyWeeklyLeaderboard(data);
     } catch (err) {
-      if (err.name !== "AbortError") throw err;
+      if (err.name === "AbortError") return;
+      if (requestSequence === weeklyRequestSequence) renderLeaderboardError();
+      throw err;
     } finally {
       if (requestSequence === weeklyRequestSequence) weeklyRequestController = null;
     }
@@ -696,7 +737,7 @@
     const tbody = document.getElementById("weeklyLeaderboardBody");
     const empty = document.getElementById("weeklyLeaderboardEmpty");
     const range = document.getElementById("weeklyRangeLabel");
-    range.textContent = data.since_ts ? `${formatShortDate(data.since_ts)} - ${formatShortDate(data.server_ts)} (Last 7 days)` : "Last 7 days";
+    range.textContent = data.since_ts ? `${formatShortDate(data.since_ts)} - ${formatShortDate(data.server_ts)}` : "Last 7 days";
 
     const serialized = JSON.stringify(data.leaderboard);
     if (serialized === state.lastWeeklyLeaderboardJson) return;
@@ -714,14 +755,15 @@
       const medals = Array.isArray(window.MEDALS) ? window.MEDALS : [];
       const medal = medals[row.rank - 1] || "";
       if (isMe) tr.classList.add("font-semibold");
+      const safeUsername = escapeHtml(row.username);
       tr.innerHTML = `
         <td>${medal ? `<span aria-label="Rank ${row.rank}">${medal}</span>` : `<span class="text-gb-fg/60">${row.rank}</span>`}</td>
         <td>
-          <a href="/users/${row.user_id}" class="font-medium ${isMe ? "text-gb-green" : "text-gb-blue hover:text-gb-purple"}" data-tooltip="${isMe ? "You" : `View ${row.username}'s profile`}">
-            ${row.username}${isMe ? " (you)" : ""}
+          <a href="/users/${row.user_id}" class="font-medium ${isMe ? "text-gb-green" : "text-gb-blue hover:text-gb-purple"}" data-tooltip="${isMe ? "You" : `View ${safeUsername}'s profile`}">
+            ${safeUsername}${isMe ? " (you)" : ""}
           </a>
         </td>
-        <td class="text-right" data-tooltip="${row.seconds} seconds total">${formatHours(row.seconds)}</td>
+        <td class="text-right" data-tooltip="${escapeHtml(formatDuration(row.seconds))} total">${formatHours(row.seconds)}</td>
       `;
       tbody.appendChild(tr);
     }
@@ -730,6 +772,49 @@
   let myWeekChart = null;
   let teamWeekChart = null;
   let dailyTrendChart = null;
+
+  // Chart.js tooltips default to a light theme that clashes with dark
+  // palettes - theme them from the same CSS vars as the page.
+  function chartTooltipOptions() {
+    const fg = window.cssRgb("--gb-fg-rgb");
+    return {
+      backgroundColor: window.cssRgb("--gb-bg0-rgb"),
+      titleColor: fg,
+      bodyColor: fg,
+      borderColor: window.cssRgb("--gb-bg2-rgb"),
+      borderWidth: 1
+    };
+  }
+
+  // Per-section failure state: hides the chart box and shows a message with
+  // a Retry button in its place, so a failed load doesn't leave a blank
+  // section. Cleared again by the next successful render.
+  function showChartSectionError(sectionId, message, retryFn) {
+    const section = document.getElementById(sectionId);
+    if (!section) return;
+    const chartBox = section.querySelector(".chart-box");
+    if (chartBox) chartBox.classList.add("hidden");
+    let errEl = section.querySelector(".chart-error");
+    if (!errEl) {
+      errEl = document.createElement("p");
+      errEl.className = "chart-error empty-state text-gb-red mt-3";
+      section.appendChild(errEl);
+    }
+    errEl.innerHTML = `${escapeHtml(message)} <button type="button" class="chart-retry-btn neu-btn neu-btn-sm border border-gb-bg2 bg-gb-bg1 text-gb-fg text-xs px-2 py-1 ml-1">Retry</button>`;
+    const retryBtn = errEl.querySelector(".chart-retry-btn");
+    retryBtn.replaceWith(retryBtn.cloneNode(true));
+    errEl.querySelector(".chart-retry-btn").addEventListener("click", () => retryFn());
+    errEl.classList.remove("hidden");
+  }
+
+  function clearChartSectionError(sectionId) {
+    const section = document.getElementById(sectionId);
+    if (!section) return;
+    const chartBox = section.querySelector(".chart-box");
+    if (chartBox) chartBox.classList.remove("hidden");
+    const errEl = section.querySelector(".chart-error");
+    if (errEl) errEl.remove();
+  }
 
   function renderPie(chartRef, canvasId, labels, values, title, emptyId, totalEl, force = false) {
     const empty = document.getElementById(emptyId);
@@ -754,14 +839,24 @@
         labels,
         datasets: [{
           data: values,
-          backgroundColor: window.themeColors()
+          backgroundColor: window.themeColors(),
+          // Segment borders in the page background plus a little spacing
+          // keep adjacent slices from visually merging.
+          borderColor: window.cssRgb("--gb-bg0-rgb"),
+          borderWidth: 2,
+          spacing: 2,
+          hoverOffset: 6
         }]
       },
       options: {
         // The in-canvas title repeats the section's own <h2> and subtitle. On a
         // phone it costs height a doughnut can't spare once the bottom legend
         // wraps, so it's desktop-only.
-        plugins: { legend: { position: "bottom", labels: { color: textColor } }, title: { display: !window.isMobileViewport(), text: title, color: textColor } }
+        plugins: {
+          legend: { position: "bottom", labels: { color: textColor } },
+          title: { display: !window.isMobileViewport(), text: title, color: textColor },
+          tooltip: chartTooltipOptions()
+        }
       },
       force
     });
@@ -782,9 +877,15 @@
     try {
       const res = await fetch("/api/stats", { signal: controller.signal });
       const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Could not load stats");
       if (requestSequence === statsRequestSequence) applyStats(data);
     } catch (err) {
-      if (err.name !== "AbortError") throw err;
+      if (err.name === "AbortError") return;
+      if (requestSequence === statsRequestSequence) {
+        showChartSectionError("insightsPersonal", "Could not load your breakdown.", () => loadStats().catch(() => {}));
+        showChartSectionError("insightsTeam", "Could not load the team breakdown.", () => loadStats().catch(() => {}));
+      }
+      throw err;
     } finally {
       if (requestSequence === statsRequestSequence) statsRequestController = null;
     }
@@ -795,6 +896,8 @@
 
   function applyStats(data, force = false) {
     lastStatsData = data;
+    clearChartSectionError("insightsPersonal");
+    clearChartSectionError("insightsTeam");
     myWeekChart = renderPie(
       myWeekChart,
       "myWeekChart",
@@ -820,6 +923,7 @@
 
   function renderDailyTrend(days, force = false) {
     lastTrendDays = days;
+    clearChartSectionError("insightsTrend");
     const empty = document.getElementById("dailyTrendEmpty");
     const hasData = days.some((d) => d.seconds > 0);
     if (!days.length || !hasData) {
@@ -849,10 +953,19 @@
       options: {
         scales: {
           x: { ticks: { color: textColor }, grid: { color: gridColor } },
-          y: { beginAtZero: true, ticks: { color: textColor }, grid: { color: gridColor } }
+          y: {
+            beginAtZero: true,
+            ticks: {
+              color: textColor,
+              // Values are hours; label ticks as such ("2h") instead of raw numbers.
+              callback: (value) => `${value}h`
+            },
+            grid: { color: gridColor }
+          }
         },
         plugins: {
-          legend: { display: false }
+          legend: { display: false },
+          tooltip: chartTooltipOptions()
         }
       },
       force
@@ -893,7 +1006,11 @@
       }
       renderDailyTrend(days);
     } catch (err) {
-      if (err.name !== "AbortError") throw err;
+      if (err.name === "AbortError") return;
+      if (requestSequence === trendRequestSequence) {
+        showChartSectionError("insightsTrend", "Could not load the daily trend.", () => loadDailyTrend().catch(() => {}));
+      }
+      throw err;
     } finally {
       if (requestSequence === trendRequestSequence) trendRequestController = null;
     }
@@ -921,18 +1038,24 @@
     const clearBtn = document.getElementById("clearRecentFiltersBtn");
     const hint = document.getElementById("recentHistoryHint");
     const { query, category } = getRecentFilters();
-    const qualifier = query || category ? "matching" : "total";
+    const hasFilters = Boolean(query || category);
+    const qualifier = hasFilters ? "matching" : "total";
     if (!state.recentTotal) {
-      hint.textContent = "No completed tasks yet.";
+      hint.textContent = hasFilters ? "No completed sessions match your filters." : "No completed sessions yet.";
     } else {
-      hint.textContent = `Showing ${state.recentSessions.length} of ${state.recentTotal} ${qualifier} tasks.`;
+      hint.textContent = `Showing ${state.recentSessions.length} of ${state.recentTotal} ${qualifier} sessions.`;
     }
     btn.classList.toggle("hidden", !state.recentHasMore);
-    clearBtn.classList.toggle("hidden", !query && !category);
+    clearBtn.classList.toggle("hidden", !hasFilters);
   }
 
   window.matchMedia(window.MOBILE_QUERY).addEventListener("change", (event) => {
-    state.recentLimit = event.matches ? 5 : 10;
+    const newLimit = event.matches ? 5 : 10;
+    if (newLimit === state.recentLimit) return;
+    state.recentLimit = newLimit;
+    // The page size changed across the breakpoint - re-page the visible
+    // window for the new limit instead of waiting for the next manual load.
+    loadRecent({ reset: true }).catch((err) => setMessage(err.message, true));
   });
 
   function buildRecentParams(offset) {
@@ -946,14 +1069,23 @@
     return params;
   }
 
+  // The row button that opened the panel, so focus can be returned to it on
+  // close (the panel itself is display:none'd, which would strand focus).
+  let editInvokerBtn = null;
+
   function closeEditPanel() {
     document.getElementById("editSessionPanel").classList.add("hidden");
     document.getElementById("editSessionId").value = "";
     document.getElementById("editNote").value = "";
     document.querySelectorAll('#editCategoryName option[data-stale="1"]').forEach((opt) => opt.remove());
+    if (editInvokerBtn) {
+      editInvokerBtn.focus();
+      editInvokerBtn = null;
+    }
   }
 
-  function openEditPanel(sessionId) {
+  function openEditPanel(sessionId, invokerBtn = null) {
+    editInvokerBtn = invokerBtn;
     const selected = state.recentSessions.find((s) => s.id === sessionId);
     if (!selected) return;
     document.getElementById("editSessionId").value = String(selected.id);
@@ -976,8 +1108,11 @@
       categorySelect.value = categoryName;
     }
     document.getElementById("editNote").value = selected.note || "";
-    document.getElementById("editSessionPanel").classList.remove("hidden");
-    document.getElementById("editNote").focus();
+    const panel = document.getElementById("editSessionPanel");
+    panel.classList.remove("hidden");
+    if (window.isMobileViewport()) panel.scrollIntoView({ block: "nearest" });
+    // Focus the first field of the dialog, not the note.
+    document.getElementById("editCategoryName").focus();
   }
 
   // How many leading rows of state.recentSessions are currently rendered in
@@ -1005,19 +1140,18 @@
       const safeEnd = escapeHtml(tsToLocal(s.end_ts));
       const safeEndCompact = escapeHtml(formatCompactDateTime(s.end_ts));
       const safeDuration = escapeHtml(formatDuration(s.duration_seconds));
-      const safeNoteTitle = safeNote || "No note";
       const tr = document.createElement("tr");
       tr.className = "border-t border-gb-bg2";
       tr.innerHTML = `
-        <td class="py-2 hist-cat" data-label="Category">${safeCategoryName}</td>
-        <td class="py-2 hist-dur" data-label="Duration" data-tooltip="Started ${safeStart}">${safeDuration}</td>
-        <td class="py-2 hist-note" data-label="Note" data-tooltip="${safeNoteTitle}">${safeNote || "-"}</td>
-        <td class="py-2 hist-when" data-label="Ended" data-tooltip="Ended ${safeEnd}">${safeEndCompact}</td>
-        <td class="py-2 hist-actions" data-label="Actions">
-          <button class="neu-btn neu-btn-sm border border-gb-bg2 bg-gb-bg1 text-gb-fg inline-flex items-center gap-1 text-xs px-2 py-1 mr-1" data-edit-session-id="${s.id}" type="button" data-tooltip="Edit category and note">
+        <td class="py-2 hist-cat">${safeCategoryName}</td>
+        <td class="py-2 hist-dur" data-tooltip="Started ${safeStart}">${safeDuration}</td>
+        <td class="py-2 hist-note">${safeNote || "-"}</td>
+        <td class="py-2 hist-when" data-tooltip="Ended ${safeEnd}">${safeEndCompact}</td>
+        <td class="py-2 hist-actions">
+          <button class="neu-btn neu-btn-sm border border-gb-bg2 bg-gb-bg1 text-gb-fg inline-flex items-center gap-1 text-xs px-2 py-1 mr-1" data-edit-session-id="${s.id}" type="button" aria-label="Edit session" data-tooltip="Edit category and note">
             <span class="material-symbols-rounded" aria-hidden="true">edit</span>
           </button>
-          <button class="neu-btn neu-btn-sm bg-gb-red text-gb-bg0 border-gb-red/80 inline-flex items-center gap-1 text-xs px-2 py-1" data-delete-session-id="${s.id}" type="button" data-tooltip="Delete this session">
+          <button class="neu-btn neu-btn-sm bg-gb-red text-gb-bg0 border-gb-red/80 inline-flex items-center gap-1 text-xs px-2 py-1" data-delete-session-id="${s.id}" type="button" aria-label="Delete session" data-tooltip="Delete this session">
             <span class="material-symbols-rounded" aria-hidden="true">delete</span>
           </button>
         </td>
@@ -1028,6 +1162,12 @@
     if (!visibleSessions.length) {
       tbody.innerHTML = "";
       recentRenderedCount = 0;
+      const { query, category } = getRecentFilters();
+      // "No matches" only makes sense when something was filtered out;
+      // with no filters and nothing recorded it's simply an empty history.
+      empty.textContent = (!state.recentTotal && !query && !category)
+        ? "No completed sessions yet."
+        : "No recent sessions match your filters.";
       empty.classList.remove("hidden");
       state.lastRenderedRecentJson = serialized;
       return;
@@ -1048,6 +1188,11 @@
 
     for (let i = recentRenderedCount; i < visibleSessions.length; i++) {
       appendRow(visibleSessions[i]);
+      // Rows appended by a live update get a subtle entrance animation;
+      // full rebuilds (filter changes, first load) stay instant.
+      if (isPrefixExtension) {
+        tbody.lastElementChild.classList.add("hist-row-enter");
+      }
     }
     recentRenderedCount = visibleSessions.length;
     state.lastRenderedRecentJson = serialized;
@@ -1057,7 +1202,7 @@
       tbody.addEventListener("click", async (e) => {
         const editBtn = e.target instanceof Element && e.target.closest("[data-edit-session-id]");
         if (editBtn) {
-          openEditPanel(Number(editBtn.getAttribute("data-edit-session-id")));
+          openEditPanel(Number(editBtn.getAttribute("data-edit-session-id")), editBtn);
           return;
         }
         const deleteBtn = e.target instanceof Element && e.target.closest("[data-delete-session-id]");
@@ -1077,6 +1222,16 @@
 
   let recentRequestController = null;
   let recentRequestSequence = 0;
+
+  // A failed first load must not leave the "Loading…" row in place forever -
+  // swap in an error row whose Retry button re-runs the load.
+  function renderRecentError() {
+    const tbody = document.getElementById("recentBody");
+    tbody.innerHTML = `<tr><td colspan="5" class="py-3 text-center text-sm text-gb-red">Could not load recent sessions. <button type="button" id="retryRecentBtn" class="neu-btn neu-btn-sm border border-gb-bg2 bg-gb-bg1 text-gb-fg text-xs px-2 py-1 ml-1" data-tooltip="Reload recent sessions">Retry</button></td></tr>`;
+    document.getElementById("retryRecentBtn").addEventListener("click", () => {
+      loadRecent({ reset: true }).catch(() => {});
+    });
+  }
 
   async function loadRecent({ reset = true } = {}) {
     const requestSequence = ++recentRequestSequence;
@@ -1104,7 +1259,9 @@
       state.recentLoadedOnce = true;
       renderRecent(state.recentSessions);
     } catch (err) {
-      if (err.name !== "AbortError") throw err;
+      if (err.name === "AbortError") return;
+      if (requestSequence === recentRequestSequence && reset) renderRecentError();
+      throw err;
     } finally {
       if (requestSequence === recentRequestSequence) recentRequestController = null;
     }
@@ -1142,15 +1299,28 @@
 
   document.getElementById("loadMoreRecentBtn").addEventListener("click", async () => {
     if (!state.recentHasMore) return;
+    const btn = document.getElementById("loadMoreRecentBtn");
+    const label = document.getElementById("loadMoreRecentLabel");
+    btn.disabled = true;
+    label.textContent = "Loading…";
     try {
       await loadRecent({ reset: false });
     } catch (err) {
       setMessage(err.message, true);
+    } finally {
+      btn.disabled = false;
+      label.textContent = "Load more";
     }
   });
 
   document.getElementById("cancelEditSessionBtn").addEventListener("click", () => {
     closeEditPanel();
+  });
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key !== "Escape") return;
+    const panel = document.getElementById("editSessionPanel");
+    if (panel && !panel.classList.contains("hidden")) closeEditPanel();
   });
 
   document.getElementById("saveEditSessionBtn").addEventListener("click", async () => {
@@ -1182,9 +1352,47 @@
   const clearActivityBtn = document.getElementById("clearActivityBtn");
   const sessionNoteInput = document.getElementById("sessionNote");
   let selectedCategory = "";
+  let activeOptionIndex = -1;
 
   function updateClearBtn() {
     clearActivityBtn.classList.toggle("hidden", !categoryInput.value);
+  }
+
+  // Single place that toggles dropdown visibility so the combobox's
+  // aria-expanded always stays in sync with it.
+  function setDropdownOpen(open) {
+    activityDropdown.classList.toggle("hidden", !open);
+    categoryInput.setAttribute("aria-expanded", String(open));
+    if (!open) categoryInput.removeAttribute("aria-activedescendant");
+  }
+
+  function getVisibleOptions() {
+    return Array.from(activityOptions).filter(opt => !opt.classList.contains("hidden"));
+  }
+
+  function clearActiveOption() {
+    activityOptions.forEach(opt => {
+      opt.classList.remove("active");
+      opt.removeAttribute("aria-selected");
+    });
+    activeOptionIndex = -1;
+    categoryInput.removeAttribute("aria-activedescendant");
+  }
+
+  function setActiveOption(index) {
+    const visible = getVisibleOptions();
+    if (!visible.length) {
+      clearActiveOption();
+      return;
+    }
+    // Wrap around both ends so arrows always cycle through the list.
+    activeOptionIndex = ((index % visible.length) + visible.length) % visible.length;
+    const opt = visible[activeOptionIndex];
+    activityOptions.forEach(o => o.removeAttribute("aria-selected"));
+    opt.classList.add("active");
+    opt.setAttribute("aria-selected", "true");
+    categoryInput.setAttribute("aria-activedescendant", opt.id);
+    opt.scrollIntoView({ block: "nearest" });
   }
 
   function filterCategories(query = "") {
@@ -1196,7 +1404,8 @@
       option.classList.toggle("hidden", !matches);
       if (matches) hasVisible = true;
     });
-    activityDropdown.classList.toggle("hidden", !hasVisible || (query !== "" && query === selectedCategory));
+    setDropdownOpen(hasVisible && !(query !== "" && query === selectedCategory));
+    setActiveOption(0);
     updateClearBtn();
   }
 
@@ -1217,17 +1426,33 @@
   });
 
   categoryInput.addEventListener("keydown", (e) => {
-    if (e.key === "Escape") {
-      activityDropdown.classList.add("hidden");
-      categoryInput.value = selectedCategory;
-    } else if (e.key === "Enter") {
-      activityDropdown.classList.add("hidden");
-      selectedCategory = categoryInput.value;
-      const firstVisible = Array.from(activityOptions).find(opt => !opt.classList.contains("hidden"));
-      if (firstVisible && firstVisible.getAttribute("data-value").toLowerCase() === categoryInput.value.toLowerCase()) {
-        categoryInput.value = firstVisible.getAttribute("data-value");
-        selectedCategory = categoryInput.value;
+    const visible = getVisibleOptions();
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      if (activityDropdown.classList.contains("hidden")) {
+        filterCategories(categoryInput.value);
+      } else {
+        setActiveOption(activeOptionIndex + 1);
       }
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      if (!activityDropdown.classList.contains("hidden")) {
+        setActiveOption(activeOptionIndex - 1);
+      }
+    } else if (e.key === "Escape") {
+      setDropdownOpen(false);
+      categoryInput.value = selectedCategory;
+      clearActiveOption();
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      // Choose the highlighted option, falling back to the top match.
+      const chosen = visible[activeOptionIndex] || visible[0];
+      if (chosen) {
+        categoryInput.value = chosen.getAttribute("data-value");
+      }
+      selectedCategory = categoryInput.value;
+      setDropdownOpen(false);
+      clearActiveOption();
     }
     updateClearBtn();
   });
@@ -1236,14 +1461,19 @@
     option.addEventListener("click", () => {
       categoryInput.value = option.getAttribute("data-value");
       selectedCategory = categoryInput.value;
-      activityDropdown.classList.add("hidden");
+      setDropdownOpen(false);
+      clearActiveOption();
       updateClearBtn();
+    });
+    option.addEventListener("mouseover", () => {
+      const index = getVisibleOptions().indexOf(option);
+      if (index >= 0) setActiveOption(index);
     });
   });
 
   document.addEventListener("click", (e) => {
     if (!categoryInput.contains(e.target) && !activityDropdown.contains(e.target)) {
-      activityDropdown.classList.add("hidden");
+      setDropdownOpen(false);
       if (!categoryInput.value) {
         // Restore selected value if empty
         categoryInput.value = selectedCategory;
@@ -1289,7 +1519,7 @@
   });
 
   document.getElementById("pauseBtn").addEventListener("click", async () => {
-    if (!state.current) return;
+    if (!requireConfirmedSession()) return;
     await performSessionAction("/api/session/pause", { session_id: state.current.id }, {
       optimistic: () => {
         // Freeze the running total before flipping status (currentElapsed
@@ -1304,7 +1534,7 @@
   });
 
   document.getElementById("resumeBtn").addEventListener("click", async () => {
-    if (!state.current) return;
+    if (!requireConfirmedSession()) return;
     await performSessionAction("/api/session/resume", { session_id: state.current.id }, {
       optimistic: () => {
         if (state.current) state.current = { ...state.current, status: "running" };
@@ -1316,7 +1546,7 @@
   });
 
   document.getElementById("finishBtn").addEventListener("click", async () => {
-    if (!state.current) return;
+    if (!requireConfirmedSession()) return;
     await performSessionAction("/api/session/finish", { session_id: state.current.id }, {
       optimistic: () => {
         state.current = null;
@@ -1329,7 +1559,7 @@
   });
 
   document.getElementById("cancelBtn").addEventListener("click", async () => {
-    if (!state.current) return;
+    if (!requireConfirmedSession()) return;
     if (!await window.showAppConfirm("Cancel the current session? This will discard it.")) return;
     await performSessionAction("/api/session/cancel", { session_id: state.current.id }, {
       optimistic: () => {
@@ -1411,6 +1641,9 @@
 
   // Fallback polling (used when SSE isn't connected).
   let statusPoll = null;
+  // While offline every poll fails; toast at most once per 30s so a long
+  // outage doesn't stack a toast per poll.
+  let lastStatusErrorToastAt = 0;
   function startStatusPolling() {
     if (statusPoll) return;
     const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
@@ -1423,7 +1656,11 @@
           window.location.href = "/login";
           return;
         }
-        setMessage("Could not refresh status.", true);
+        const now = Date.now();
+        if (now - lastStatusErrorToastAt > 30000) {
+          lastStatusErrorToastAt = now;
+          setMessage("Could not refresh status.", true);
+        }
       });
     }, slow ? 15000 : 5000);
   }

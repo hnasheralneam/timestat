@@ -233,14 +233,22 @@ window.TimestatPalette = (function () {
 })();
 
 (function () {
-  const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+  const darkSchemeQuery = window.matchMedia("(prefers-color-scheme: dark)");
   let savedTheme = null;
   try {
     savedTheme = localStorage.getItem("timestat-theme");
   } catch (_err) {}
   const mode = ["light", "dark", "system"].includes(savedTheme) ? savedTheme : "system";
-  const useDark = mode === "system" ? prefersDark : mode === "dark";
+  const useDark = mode === "system" ? darkSchemeQuery.matches : mode === "dark";
   if (useDark) document.documentElement.classList.add("dark");
   document.documentElement.setAttribute("data-theme-mode", mode);
   window.TimestatPalette.apply(useDark);
+
+  // prefers-color-scheme was only read once above; in "system" mode a change
+  // (OS dark-mode toggle) must re-run the palette logic for the new scheme.
+  darkSchemeQuery.addEventListener("change", (event) => {
+    if (mode !== "system") return;
+    document.documentElement.classList.toggle("dark", event.matches);
+    window.TimestatPalette.apply(event.matches);
+  });
 })();
