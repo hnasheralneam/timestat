@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="min-h-[calc(100vh-5.5rem)] flex items-center justify-center">
+<div class="min-h-screen min-h-dvh flex items-center justify-center">
   <div class="w-full max-w-md neu-surface p-6 sm:p-7">
     <div class="mb-5">
       <div class="inline-flex items-center gap-2 text-xs uppercase tracking-wide text-gb-fg/70 mb-2">
@@ -19,7 +19,13 @@
         <span class="material-symbols-rounded" aria-hidden="true">pin</span>
         Your 6-digit code
       </div>
-      <div class="text-4xl tracking-widest font-bold text-gb-green">{{ six_digit_code }}</div>
+      <div class="flex items-center justify-center gap-2">
+        <div id="registerCodeValue" class="text-4xl tracking-widest font-bold text-gb-green">{{ six_digit_code }}</div>
+        <button id="copyCodeBtn" class="neu-btn border border-gb-bg2 bg-gb-bg1 text-gb-fg inline-flex items-center gap-1 text-xs px-2 py-1" type="button" aria-label="Copy code" data-tooltip="Copy code">
+          <span class="material-symbols-rounded" aria-hidden="true">content_copy</span>
+          <span class="btn-label">Copy</span>
+        </button>
+      </div>
     </div>
 
     <a href="{{ url_for('dashboard') }}" class="mt-5 w-full text-center neu-btn bg-gb-blue text-gb-bg0 border-gb-blue/80 inline-flex items-center justify-center gap-2">
@@ -28,5 +34,39 @@
     </a>
   </div>
 </div>
+<script>
+  const copyCodeBtn = document.getElementById("copyCodeBtn");
+  copyCodeBtn.addEventListener("click", async () => {
+    const code = document.getElementById("registerCodeValue").textContent.trim();
+    const label = copyCodeBtn.querySelector(".btn-label");
+    let copied = false;
+    try {
+      await navigator.clipboard.writeText(code);
+      copied = true;
+    } catch (_err) {
+      // Fallback for non-secure contexts or browsers without the async
+      // clipboard API.
+      const helper = document.createElement("textarea");
+      helper.value = code;
+      helper.setAttribute("readonly", "");
+      helper.style.position = "fixed";
+      helper.style.opacity = "0";
+      document.body.appendChild(helper);
+      helper.select();
+      try { copied = document.execCommand("copy"); } catch (_err2) {}
+      helper.remove();
+    }
+    if (copied) {
+      label.textContent = "Copied!";
+      copyCodeBtn.setAttribute("data-tooltip", "Copied!");
+      setTimeout(() => {
+        label.textContent = "Copy";
+        copyCodeBtn.setAttribute("data-tooltip", "Copy code");
+      }, 1500);
+    } else if (typeof window.showToast === "function") {
+      window.showToast("Could not copy the code - please copy it manually.", true);
+    }
+  });
+</script>
 {% endblock %}
 {% block footer %}{% endblock %}

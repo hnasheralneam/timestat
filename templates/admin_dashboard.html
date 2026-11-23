@@ -1,19 +1,19 @@
 {% extends "base.html" %}
 {% block header_icon %}admin_panel_settings{% endblock %}
 {% block header_title %}Admin Dashboard{% endblock %}
-{% block header_subtitle %}Delete users or selectively remove their tasks.{% endblock %}
+{% block header_subtitle %}Manage users, their sessions, and activity categories.{% endblock %}
 {% block header_nav %}
-  <a href="{{ url_for('admin_analytics') }}" class="neu-btn border border-gb-bg2 bg-gb-bg1 text-gb-fg p-2 inline-flex items-center justify-center" data-tooltip="Team analytics">
+  <a href="{{ url_for('admin_analytics') }}" class="neu-btn border border-gb-bg2 bg-gb-bg1 text-gb-fg p-2 inline-flex items-center justify-center" aria-label="Team analytics" data-tooltip="Team analytics">
     <span class="material-symbols-rounded" aria-hidden="true">analytics</span>
   </a>
-  <a href="{{ url_for('dashboard') }}" class="neu-btn border border-gb-bg2 bg-gb-bg1 text-gb-fg p-2 inline-flex items-center justify-center" data-tooltip="User dashboard">
+  <a href="{{ url_for('dashboard') }}" class="neu-btn border border-gb-bg2 bg-gb-bg1 text-gb-fg p-2 inline-flex items-center justify-center" aria-label="User dashboard" data-tooltip="User dashboard">
     <span class="material-symbols-rounded" aria-hidden="true">dashboard</span>
   </a>
   <button class="theme-toggle neu-btn text-gb-fg border-gb-bg2 bg-gb-bg1 p-2 inline-flex items-center justify-center" data-tooltip="Switch to dark mode" aria-label="Switch to dark mode" type="button">
     <span class="material-symbols-rounded" aria-hidden="true">dark_mode</span>
   </button>
   <form action="{{ url_for('admin_logout') }}" method="post">
-    <button class="neu-btn bg-gb-red text-gb-bg0 border-gb-red/80 p-2 inline-flex items-center justify-center" type="submit" data-tooltip="Admin sign out">
+    <button class="neu-btn bg-gb-red text-gb-bg0 border-gb-red/80 p-2 inline-flex items-center justify-center" type="submit" aria-label="Admin sign out" data-tooltip="Admin sign out">
       <span class="material-symbols-rounded" aria-hidden="true">logout</span>
     </button>
   </form>
@@ -49,7 +49,7 @@
           <td class="py-2" data-label="Completed" data-count-role="completed">{{ row.completed_count }}</td>
           <td class="py-2" data-label="Active" data-count-role="active">{{ row.active_count }}</td>
           <td class="py-2" data-label="Actions">
-            <div class="flex flex-wrap gap-2 justify-end md:justify-start">
+            <div class="flex flex-wrap gap-2 justify-start">
               <button
                 class="neu-btn border border-gb-bg2 bg-gb-bg1 text-gb-fg inline-flex items-center gap-1 text-xs px-2 py-1 {% if row.active_status != 'running' %}hidden{% endif %}"
                 type="button"
@@ -75,6 +75,7 @@
                 type="button"
                 data-manage-tasks-user-id="{{ row.id }}"
                 data-manage-tasks-username="{{ row.username|e }}"
+                data-tooltip="Choose tasks to remove for {{ row.username|e }}"
               >
                 <span class="material-symbols-rounded" aria-hidden="true">checklist</span>
                 Manage tasks
@@ -109,6 +110,7 @@
       required
       class="neu-input"
       placeholder="Add a new category name"
+      aria-label="New category name"
       data-tooltip="This category will appear in user dashboards"
     >
     <button class="neu-btn bg-gb-green text-gb-bg0 border-gb-green/80 inline-flex items-center gap-1 justify-center" type="submit">
@@ -150,7 +152,7 @@
 <div id="taskModal" class="hidden fixed inset-0 z-40">
   <div class="absolute inset-0 bg-black/45" id="taskModalBackdrop"></div>
   <div class="relative z-10 mx-auto mt-12 max-w-5xl px-4">
-    <section class="neu-surface p-5">
+    <section class="neu-surface p-5" role="dialog" aria-modal="true" aria-labelledby="taskModalTitle">
       <div class="flex flex-wrap items-start justify-between gap-2">
         <div>
           <h3 class="text-lg font-semibold text-gb-fg flex items-center gap-2">
@@ -165,7 +167,7 @@
         </button>
       </div>
 
-      <p id="taskModalMessage" class="mt-3 text-sm text-gb-green"></p>
+      <p id="taskModalMessage" class="mt-3 text-sm text-gb-green" role="status" aria-live="polite"></p>
 
       <div class="mt-4 mb-2 flex items-center justify-between gap-2">
         <label class="inline-flex items-center gap-2 text-sm text-gb-fg/90">
@@ -214,6 +216,8 @@
   };
   let taskRequestController = null;
   let taskRequestSequence = 0;
+  let taskModalOpener = null;
+  let taskTrapHandler = null;
 
   // escapeHtml, formatDuration, tsToLocal, and postJson are provided
   // globally by static/js/common.js (loaded from base.html).
@@ -252,11 +256,47 @@
   }
 
   function openTaskModal() {
+    taskModalOpener = document.activeElement;
     taskModal.classList.remove("hidden");
+    // Focus the first control inside the dialog and trap Tab within it
+    // (same pattern as the settings modal in base.html).
+    const dialogEl = taskModal.querySelector('[role="dialog"]');
+    const firstFocusable = dialogEl ? dialogEl.querySelector(
+      'button:not([disabled]), input:not([disabled]), select:not([disabled])'
+    ) : null;
+    if (firstFocusable) firstFocusable.focus();
+    if (taskTrapHandler) {
+      document.removeEventListener("keydown", taskTrapHandler);
+      taskTrapHandler = null;
+    }
+    taskTrapHandler = (e) => {
+      if (e.key !== "Tab") return;
+      const focusable = Array.from(dialogEl.querySelectorAll(
+        'button:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])'
+      ));
+      if (!focusable.length) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        last.focus(); e.preventDefault();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        first.focus(); e.preventDefault();
+      }
+    };
+    document.addEventListener("keydown", taskTrapHandler);
   }
 
   function closeTaskModal() {
     taskModal.classList.add("hidden");
+    if (taskTrapHandler) {
+      document.removeEventListener("keydown", taskTrapHandler);
+      taskTrapHandler = null;
+    }
+    // Return focus to the control that opened the modal.
+    if (taskModalOpener && typeof taskModalOpener.focus === "function") {
+      taskModalOpener.focus();
+      taskModalOpener = null;
+    }
     state.activeUserId = null;
     state.activeUsername = "";
     state.tasks = [];
@@ -286,7 +326,7 @@
       tr.className = "border-t border-gb-bg2";
       tr.innerHTML = `
         <td class="py-2" data-label="Select">
-          <input type="checkbox" data-task-id="${task.id}">
+          <input type="checkbox" data-task-id="${task.id}" aria-label="Select task">
         </td>
         <td class="py-2" data-label="Category">${safeCategory}</td>
         <td class="py-2" data-label="Note" data-tooltip="${safeNote || "No note"}">${safeNote || "-"}</td>
@@ -313,6 +353,11 @@
     taskModalBody.innerHTML = "";
     taskModalEmpty.classList.add("hidden");
     openTaskModal();
+    taskModalBody.innerHTML = `
+      <tr class="loading-pulse">
+        <td colspan="7" class="py-4 text-center text-gb-fg/70">Loading tasks…</td>
+      </tr>
+    `;
 
     try {
       const res = await fetch(`/admin/api/users/${requestedUserId}/tasks`, { signal: controller.signal });
@@ -336,9 +381,27 @@
       if (err.name === "AbortError") return;
       if (isUnauthorized(err)) { redirectToAdminLogin(); return; }
       if (requestSequence !== taskRequestSequence || state.activeUserId !== requestedUserId) return;
-      setTaskModalMessage(err.message || "Could not load tasks", true);
+      const errorMessage = err.message || "Could not load tasks";
+      setTaskModalMessage(errorMessage, true);
       state.tasks = [];
-      renderTaskRows();
+      taskModalEmpty.classList.add("hidden");
+      taskModalBody.innerHTML = "";
+      const errorRow = document.createElement("tr");
+      const errorCell = document.createElement("td");
+      errorCell.colSpan = 7;
+      errorCell.className = "py-4 text-center";
+      const errorText = document.createElement("span");
+      errorText.className = "text-gb-red text-sm";
+      errorText.textContent = errorMessage;
+      const retryBtn = document.createElement("button");
+      retryBtn.type = "button";
+      retryBtn.className = "neu-btn border border-gb-bg2 bg-gb-bg1 text-gb-fg inline-flex items-center gap-1 text-xs px-2 py-1 ml-2 align-middle";
+      retryBtn.innerHTML = '<span class="material-symbols-rounded" aria-hidden="true">refresh</span>Retry';
+      retryBtn.addEventListener("click", () => loadUserTasks(requestedUserId, state.activeUsername));
+      errorCell.appendChild(errorText);
+      errorCell.appendChild(retryBtn);
+      errorRow.appendChild(errorCell);
+      taskModalBody.appendChild(errorRow);
     } finally {
       if (requestSequence === taskRequestSequence) taskRequestController = null;
     }

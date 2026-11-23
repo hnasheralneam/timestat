@@ -3,14 +3,14 @@
 {% block header_title %}Team Analytics{% endblock %}
 {% block header_subtitle %}Team-wide trends, busiest hours, and category mix (admin view).{% endblock %}
 {% block header_nav %}
-  <a href="{{ url_for('admin_dashboard') }}" class="neu-btn border border-gb-bg2 bg-gb-bg1 text-gb-fg p-2 inline-flex items-center justify-center" data-tooltip="Admin dashboard">
+  <a href="{{ url_for('admin_dashboard') }}" class="neu-btn border border-gb-bg2 bg-gb-bg1 text-gb-fg p-2 inline-flex items-center justify-center" aria-label="Admin dashboard" data-tooltip="Admin dashboard">
     <span class="material-symbols-rounded" aria-hidden="true">admin_panel_settings</span>
   </a>
   <button class="theme-toggle neu-btn text-gb-fg border-gb-bg2 bg-gb-bg1 p-2 inline-flex items-center justify-center" data-tooltip="Switch to dark mode" aria-label="Switch to dark mode" type="button">
     <span class="material-symbols-rounded" aria-hidden="true">dark_mode</span>
   </button>
   <form action="{{ url_for('admin_logout') }}" method="post">
-    <button class="neu-btn bg-gb-red text-gb-bg0 border-gb-red/80 p-2 inline-flex items-center justify-center" type="submit" data-tooltip="Admin sign out">
+    <button class="neu-btn bg-gb-red text-gb-bg0 border-gb-red/80 p-2 inline-flex items-center justify-center" type="submit" aria-label="Admin sign out" data-tooltip="Admin sign out">
       <span class="material-symbols-rounded" aria-hidden="true">logout</span>
     </button>
   </form>
@@ -30,7 +30,15 @@
       <span class="material-symbols-rounded" aria-hidden="true">timeline</span>
       Team Hours per Day (Last 30)
     </h2>
-    <div class="chart-box"><canvas id="hoursPerDayChart" role="img" aria-label="Bar chart of team hours per day"></canvas></div>
+    <div class="chart-box">
+      <canvas id="hoursPerDayChart" role="img" aria-label="Bar chart of team hours per day" aria-describedby="hoursPerDayChartTable"></canvas>
+      <div class="analytics-loading loading-pulse absolute inset-0 flex items-center justify-center text-sm text-gb-fg/60" aria-hidden="true">Loading chart…</div>
+    </div>
+    <table id="hoursPerDayChartTable" class="sr-only">
+      <caption>Team hours per day, last 30 days</caption>
+      <thead><tr><th scope="col">Date</th><th scope="col">Hours</th></tr></thead>
+      <tbody></tbody>
+    </table>
     <p id="hoursPerDayEmpty" class="empty-state hidden mt-3">No completed sessions in this range.</p>
   </section>
 
@@ -39,7 +47,15 @@
       <span class="material-symbols-rounded" aria-hidden="true">groups</span>
       Active Users per Day (Last 14)
     </h2>
-    <div class="chart-box"><canvas id="activeUsersChart" role="img" aria-label="Bar chart of active users per day"></canvas></div>
+    <div class="chart-box">
+      <canvas id="activeUsersChart" role="img" aria-label="Bar chart of active users per day" aria-describedby="activeUsersChartTable"></canvas>
+      <div class="analytics-loading loading-pulse absolute inset-0 flex items-center justify-center text-sm text-gb-fg/60" aria-hidden="true">Loading chart…</div>
+    </div>
+    <table id="activeUsersChartTable" class="sr-only">
+      <caption>Active users per day, last 14 days</caption>
+      <thead><tr><th scope="col">Date</th><th scope="col">Active users</th></tr></thead>
+      <tbody></tbody>
+    </table>
     <p id="activeUsersEmpty" class="empty-state hidden mt-3">No completed sessions in this range.</p>
   </section>
 
@@ -48,7 +64,15 @@
       <span class="material-symbols-rounded" aria-hidden="true">schedule</span>
       Busiest Hours of Day (Last 30)
     </h2>
-    <div class="chart-box"><canvas id="hourOfDayChart" role="img" aria-label="Bar chart of busiest hours of the day"></canvas></div>
+    <div class="chart-box">
+      <canvas id="hourOfDayChart" role="img" aria-label="Bar chart of busiest hours of the day" aria-describedby="hourOfDayChartTable"></canvas>
+      <div class="analytics-loading loading-pulse absolute inset-0 flex items-center justify-center text-sm text-gb-fg/60" aria-hidden="true">Loading chart…</div>
+    </div>
+    <table id="hourOfDayChartTable" class="sr-only">
+      <caption>Busiest hours of day, last 30 days</caption>
+      <thead><tr><th scope="col">Hour</th><th scope="col">Hours</th></tr></thead>
+      <tbody></tbody>
+    </table>
     <p id="hourOfDayEmpty" class="empty-state hidden mt-3">No completed sessions in this range.</p>
   </section>
 
@@ -66,7 +90,11 @@
             <th class="text-right py-2">Hours</th>
           </tr>
         </thead>
-        <tbody id="topUsersBody"></tbody>
+        <tbody id="topUsersBody">
+          <tr class="analytics-loading loading-pulse">
+            <td colspan="3" class="py-4 text-center text-gb-fg/70">Loading top users…</td>
+          </tr>
+        </tbody>
       </table>
     </div>
     <p id="topUsersEmpty" class="empty-state hidden mt-3">No tracked time this week yet.</p>
@@ -77,7 +105,15 @@
       <span class="material-symbols-rounded" aria-hidden="true">pie_chart</span>
       Team Category Mix (All Time)
     </h2>
-    <div class="chart-box"><canvas id="categoriesAllChart" role="img" aria-label="Doughnut chart of team category mix all time"></canvas></div>
+    <div class="chart-box">
+      <canvas id="categoriesAllChart" role="img" aria-label="Doughnut chart of team category mix all time" aria-describedby="categoriesAllChartTable"></canvas>
+      <div class="analytics-loading loading-pulse absolute inset-0 flex items-center justify-center text-sm text-gb-fg/60" aria-hidden="true">Loading chart…</div>
+    </div>
+    <table id="categoriesAllChartTable" class="sr-only">
+      <caption>Team category mix, all time</caption>
+      <thead><tr><th scope="col">Category</th><th scope="col">Hours</th></tr></thead>
+      <tbody></tbody>
+    </table>
     <p id="categoriesAllEmpty" class="empty-state hidden mt-3">No team data yet.</p>
   </section>
 
@@ -86,7 +122,15 @@
       <span class="material-symbols-rounded" aria-hidden="true">pie_chart</span>
       Team Category Mix (Last 7 Days)
     </h2>
-    <div class="chart-box"><canvas id="categoriesWeekChart" role="img" aria-label="Doughnut chart of team category mix last 7 days"></canvas></div>
+    <div class="chart-box">
+      <canvas id="categoriesWeekChart" role="img" aria-label="Doughnut chart of team category mix last 7 days" aria-describedby="categoriesWeekChartTable"></canvas>
+      <div class="analytics-loading loading-pulse absolute inset-0 flex items-center justify-center text-sm text-gb-fg/60" aria-hidden="true">Loading chart…</div>
+    </div>
+    <table id="categoriesWeekChartTable" class="sr-only">
+      <caption>Team category mix, last 7 days</caption>
+      <thead><tr><th scope="col">Category</th><th scope="col">Hours</th></tr></thead>
+      <tbody></tbody>
+    </table>
     <p id="categoriesWeekEmpty" class="empty-state hidden mt-3">No team data this week.</p>
   </section>
 </div>
@@ -113,7 +157,43 @@
     if (el) EMPTY_STATE_DEFAULT_TEXT[id] = el.textContent;
   });
 
+  function clearAnalyticsLoading() {
+    document.querySelectorAll(".analytics-loading").forEach((el) => el.remove());
+  }
+
+  // Screen-reader alternative for a chart canvas: fills the sr-only table
+  // referenced by the canvas's aria-describedby with the same labels/values.
+  function renderChartDataTable(tableId, labels, values, unit) {
+    const table = document.getElementById(tableId);
+    if (!table) return;
+    const tbody = table.querySelector("tbody");
+    if (!tbody) return;
+    tbody.innerHTML = "";
+    labels.forEach((label, i) => {
+      const tr = document.createElement("tr");
+      const th = document.createElement("th");
+      th.scope = "row";
+      th.textContent = String(label);
+      const td = document.createElement("td");
+      td.textContent = unit ? `${values[i]} ${unit}` : String(values[i]);
+      tr.appendChild(th);
+      tr.appendChild(td);
+      tbody.appendChild(tr);
+    });
+  }
+
+  function tooltipTheme() {
+    return {
+      backgroundColor: window.cssRgb("--gb-bg0-rgb"),
+      titleColor: window.cssRgb("--gb-fg-rgb"),
+      bodyColor: window.cssRgb("--gb-fg-rgb"),
+      borderColor: window.cssRgb("--gb-bg2-rgb"),
+      borderWidth: 1
+    };
+  }
+
   function showLoadError(message) {
+    clearAnalyticsLoading();
     [hoursPerDayChart, activeUsersChart, hourOfDayChart, categoriesAllChart, categoriesWeekChart]
       .forEach((chart) => { if (chart) chart.destroy(); });
     hoursPerDayChart = activeUsersChart = hourOfDayChart = categoriesAllChart = categoriesWeekChart = null;
@@ -138,8 +218,9 @@
   function textColor() { return window.cssRgb("--gb-fg-rgb"); }
   function gridColor() { return window.cssRgb("--gb-bg2-rgb"); }
 
-  function barChart(ref, canvasId, labels, values, emptyId, force = false) {
+  function barChart(ref, canvasId, labels, values, emptyId, tableId, unit, force = false) {
     const empty = document.getElementById(emptyId);
+    renderChartDataTable(tableId, labels, values, unit);
     if (!labels.length || !values.some((v) => v > 0)) {
       if (ref) ref.destroy();
       empty.classList.remove("hidden");
@@ -164,14 +245,15 @@
           x: { ticks: { color: textColor(), maxRotation: 60, autoSkip: true }, grid: { color: gridColor() } },
           y: { beginAtZero: true, ticks: { color: textColor() }, grid: { color: gridColor() } }
         },
-        plugins: { legend: { display: false } }
+        plugins: { legend: { display: false }, tooltip: tooltipTheme() }
       },
       force
     });
   }
 
-  function pieChart(ref, canvasId, labels, values, emptyId, title, force = false) {
+  function pieChart(ref, canvasId, labels, values, emptyId, title, tableId, unit, force = false) {
     const empty = document.getElementById(emptyId);
+    renderChartDataTable(tableId, labels, values, unit);
     if (!labels.length || !values.some((v) => v > 0)) {
       if (ref) ref.destroy();
       empty.classList.remove("hidden");
@@ -182,7 +264,11 @@
     return window.renderOrUpdateChart(ref, ctx, {
       type: "doughnut",
       data: { labels, datasets: [{ data: values, backgroundColor: window.themeColors() }] },
-      options: { plugins: { legend: { position: "bottom", labels: { color: textColor() } }, title: { display: !!title, text: title || "", color: textColor() } } },
+      options: { plugins: {
+        legend: { position: "bottom", labels: { color: textColor() } },
+        title: { display: !!title, text: title || "", color: textColor() },
+        tooltip: tooltipTheme()
+      } },
       force
     });
   }
@@ -203,7 +289,7 @@
         <td class="py-2"><a href="/users/${row.user_id}" class="font-medium text-gb-blue hover:text-gb-purple inline-flex items-center gap-1">
           <span class="material-symbols-rounded" aria-hidden="true">person</span>${escapeHtml(row.username)}
         </a></td>
-        <td class="py-2 text-right" data-tooltip="${row.seconds} seconds total">${formatHours(row.seconds)}</td>
+        <td class="py-2 text-right" data-tooltip="${formatHours(row.seconds)} hours total">${formatHours(row.seconds)}</td>
       `;
       tbody.appendChild(tr);
     }
@@ -218,25 +304,26 @@
   // data (theme/palette change: only the colors moved).
   function renderAnalytics(data, force = false) {
     lastAnalyticsData = data;
+    clearAnalyticsLoading();
     hoursPerDayChart = barChart(
       hoursPerDayChart, "hoursPerDayChart",
       (data.hours_per_day || []).map((d) => shortDate(d.date)),
       (data.hours_per_day || []).map((d) => +(d.seconds / 3600).toFixed(2)),
-      "hoursPerDayEmpty", force
+      "hoursPerDayEmpty", "hoursPerDayChartTable", "hours", force
     );
 
     activeUsersChart = barChart(
       activeUsersChart, "activeUsersChart",
       (data.active_users_per_day || []).map((d) => shortDate(d.date)),
       (data.active_users_per_day || []).map((d) => d.active_users),
-      "activeUsersEmpty", force
+      "activeUsersEmpty", "activeUsersChartTable", "", force
     );
 
     hourOfDayChart = barChart(
       hourOfDayChart, "hourOfDayChart",
       (data.hour_of_day || []).map((d) => `${String(d.hour).padStart(2, "0")}:00`),
       (data.hour_of_day || []).map((d) => +(d.seconds / 3600).toFixed(2)),
-      "hourOfDayEmpty", force
+      "hourOfDayEmpty", "hourOfDayChartTable", "hours", force
     );
 
     renderTopUsers(data.top_users_week || []);
@@ -245,14 +332,14 @@
       categoriesAllChart, "categoriesAllChart",
       (data.categories_all_time || []).map((x) => x.name),
       (data.categories_all_time || []).map((x) => +(x.seconds / 3600).toFixed(2)),
-      "categoriesAllEmpty", "", force
+      "categoriesAllEmpty", "", "categoriesAllChartTable", "hours", force
     );
 
     categoriesWeekChart = pieChart(
       categoriesWeekChart, "categoriesWeekChart",
       (data.categories_week || []).map((x) => x.name),
       (data.categories_week || []).map((x) => +(x.seconds / 3600).toFixed(2)),
-      "categoriesWeekEmpty", "", force
+      "categoriesWeekEmpty", "", "categoriesWeekChartTable", "hours", force
     );
   }
 
@@ -260,26 +347,47 @@
     if (lastAnalyticsData) renderAnalytics(lastAnalyticsData, true);
   });
 
+  const REFRESH_BTN_HTML = document.getElementById("refreshAnalyticsBtn").innerHTML;
+
   async function loadAnalytics() {
+    const refreshBtn = document.getElementById("refreshAnalyticsBtn");
     const requestSequence = ++analyticsRequestSequence;
     if (analyticsRequestController) analyticsRequestController.abort();
     const controller = new AbortController();
     analyticsRequestController = controller;
 
-    // Fetch and Chart.js load race in parallel; charts are only needed
-    // once the data arrives.
-    const resPromise = fetch("/admin/api/analytics", { signal: controller.signal });
-    await window.ensureCharts().catch(() => {});
-    const res = await resPromise;
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || "Could not load analytics");
-    // A newer refresh may have started (and possibly already resolved)
-    // while this one was in flight - never let a slower, older response
-    // overwrite fresher data.
-    if (requestSequence !== analyticsRequestSequence) return;
-    clearLoadError();
-    renderAnalytics(data);
-    analyticsRequestController = null;
+    refreshBtn.disabled = true;
+    refreshBtn.setAttribute("aria-busy", "true");
+    refreshBtn.innerHTML = '<span class="material-symbols-rounded loading-pulse" aria-hidden="true">refresh</span>Refreshing…';
+
+    try {
+      // Fetch and Chart.js load race in parallel; charts are only needed
+      // once the data arrives.
+      const resPromise = fetch("/admin/api/analytics", { signal: controller.signal });
+      await window.ensureCharts().catch(() => {});
+      const res = await resPromise;
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Could not load analytics");
+      // A newer refresh may have started (and possibly already resolved)
+      // while this one was in flight - never let a slower, older response
+      // overwrite fresher data.
+      if (requestSequence !== analyticsRequestSequence) return;
+      clearLoadError();
+      // A previous failed load may have flagged the button - clear that now
+      // that data loaded successfully.
+      refreshBtn.classList.remove("flash-error");
+      refreshBtn.removeAttribute("data-tooltip");
+      renderAnalytics(data);
+      analyticsRequestController = null;
+    } finally {
+      // Only the latest request restores the button, so a superseded request
+      // never re-enables it while a newer refresh is still in flight.
+      if (requestSequence === analyticsRequestSequence) {
+        refreshBtn.disabled = false;
+        refreshBtn.removeAttribute("aria-busy");
+        refreshBtn.innerHTML = REFRESH_BTN_HTML;
+      }
+    }
   }
 
   // common.js is deferred (see base.html); wait for DOMContentLoaded so the

@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="min-h-[calc(100vh-5.5rem)] flex items-center justify-center">
+<div class="min-h-screen min-h-dvh flex items-center justify-center">
   <div class="w-full max-w-md neu-surface p-6 sm:p-7">
     <div class="mb-6">
       <div class="inline-flex items-center gap-2 text-xs uppercase tracking-wide text-gb-fg/70 mb-2">
@@ -17,7 +17,13 @@
     <form method="post" class="space-y-4">
       <label class="block">
         <span class="text-sm text-gb-fg/85">Admin code</span>
-        <input name="code" type="password" required autocomplete="current-password" class="mt-1 neu-input">
+        <span class="mt-1 flex items-center gap-2">
+          <input id="adminCodeInput" name="code" type="password" required autocomplete="current-password" autofocus class="neu-input flex-1">
+          <button id="toggleAdminCodeBtn" class="neu-btn border border-gb-bg2 bg-gb-bg1 text-gb-fg inline-flex items-center gap-1 text-xs px-2 py-1" type="button" aria-label="Show admin code" data-tooltip="Show admin code">
+            <span class="material-symbols-rounded" aria-hidden="true">visibility</span>
+            <span class="btn-label">Show</span>
+          </button>
+        </span>
       </label>
       <button class="w-full neu-btn bg-gb-blue text-gb-bg0 border-gb-blue/80 inline-flex items-center justify-center gap-2">
         <span class="material-symbols-rounded" aria-hidden="true">login</span>
@@ -33,4 +39,19 @@
     </p>
   </div>
 </div>
+<script>
+  const adminCodeInput = document.getElementById("adminCodeInput");
+  const toggleAdminCodeBtn = document.getElementById("toggleAdminCodeBtn");
+  toggleAdminCodeBtn.addEventListener("click", () => {
+    const show = adminCodeInput.type === "password";
+    adminCodeInput.type = show ? "text" : "password";
+    const icon = toggleAdminCodeBtn.querySelector(".material-symbols-rounded");
+    const label = toggleAdminCodeBtn.querySelector(".btn-label");
+    if (icon) icon.textContent = show ? "visibility_off" : "visibility";
+    if (label) label.textContent = show ? "Hide" : "Show";
+    toggleAdminCodeBtn.setAttribute("aria-label", show ? "Hide admin code" : "Show admin code");
+    toggleAdminCodeBtn.setAttribute("data-tooltip", show ? "Hide admin code" : "Show admin code");
+    adminCodeInput.focus();
+  });
+</script>
 {% endblock %}
